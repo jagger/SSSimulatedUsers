@@ -6,15 +6,26 @@ function Invoke-CreateFolder {
     )
 
     try {
-        # Get a random parent folder
+        # Get folders, preferring user's personal folder for write access
         $folders = Invoke-SecretServerApi -Session $Session -Endpoint "folders?take=50"
         $parentId = -1
         $parentName = 'Root'
 
         if ($folders.records -and $folders.records.Count -gt 0) {
-            $parent = $folders.records | Get-Random
-            $parentId = $parent.id
-            $parentName = $parent.folderName
+            # Try to find a personal folder first (typically named after user or under Personal Folders)
+            $personalFolder = $folders.records | Where-Object {
+                $_.folderPath -match '\\Personal Folders\\'
+            } | Get-Random
+
+            if ($personalFolder) {
+                $parentId = $personalFolder.id
+                $parentName = $personalFolder.folderName
+            }
+            else {
+                $parent = $folders.records | Get-Random
+                $parentId = $parent.id
+                $parentName = $parent.folderName
+            }
         }
 
         $adjectives = @('Test', 'Lab', 'Dev', 'Staging', 'Temp', 'Shared', 'Team', 'Project')

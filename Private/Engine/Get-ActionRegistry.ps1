@@ -17,5 +17,9 @@ function Get-ActionRegistry {
         AddFavorite       = @{ Function = 'Invoke-AddFavorite';       Category = 'Advanced' }
         TriggerHeartbeat  = @{ Function = 'Invoke-TriggerHeartbeat';  Category = 'Advanced' }
         ViewSecretPolicy  = @{ Function = 'Invoke-ViewSecretPolicy';  Category = 'Advanced' }
+        ToggleComment     = @{ Function = 'Invoke-ToggleComment';     Category = 'Management' }
+        ToggleCheckout    = @{ Function = 'Invoke-ToggleCheckout';    Category = 'Management' }
+        ExpireSecret      = @{ Function = 'Invoke-ExpireSecret';      Category = 'Management' }
+        ChangePassword    = @{ Function = 'Invoke-ChangePassword';    Category = 'Advanced' }
     }
 }

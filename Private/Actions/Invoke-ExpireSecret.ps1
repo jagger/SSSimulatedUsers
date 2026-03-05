@@ -1,4 +1,4 @@
-function Invoke-AddFavorite {
+function Invoke-ExpireSecret {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]
@@ -9,28 +9,26 @@ function Invoke-AddFavorite {
         $response = Invoke-SecretServerApi -Session $Session -Endpoint "secrets?take=50"
         if (-not $response.records -or $response.records.Count -eq 0) {
             return [PSCustomObject]@{
-                Action = 'AddFavorite'; TargetType = 'Secret'; TargetId = $null
+                Action = 'ExpireSecret'; TargetType = 'Secret'; TargetId = $null
                 TargetName = $null; Success = $false; ErrorMessage = 'No secrets available'
             }
         }
 
         $secret = $response.records | Get-Random
-
-        # Toggle favorite on via POST
-        Invoke-SecretServerApi -Session $Session -Endpoint "secrets/$($secret.id)/favorite" -Method POST -Body @{ isFavorite = $true } | Out-Null
+        Invoke-SecretServerApi -Session $Session -Endpoint "secrets/$($secret.id)/expire" -Method POST | Out-Null
 
         [PSCustomObject]@{
-            Action       = 'AddFavorite'
+            Action       = 'ExpireSecret'
             TargetType   = 'Secret'
             TargetId     = $secret.id
-            TargetName   = "$($secret.name) (favorited)"
+            TargetName   = "$($secret.name) (expired)"
             Success      = $true
             ErrorMessage = $null
         }
     }
     catch {
         [PSCustomObject]@{
-            Action = 'AddFavorite'; TargetType = 'Secret'; TargetId = $null
+            Action = 'ExpireSecret'; TargetType = 'Secret'; TargetId = $null
             TargetName = $null; Success = $false; ErrorMessage = $_.Exception.Message
         }
     }

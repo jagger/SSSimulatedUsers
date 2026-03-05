@@ -1,4 +1,4 @@
-function Invoke-AddFavorite {
+function Invoke-ToggleComment {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]
@@ -9,28 +9,33 @@ function Invoke-AddFavorite {
         $response = Invoke-SecretServerApi -Session $Session -Endpoint "secrets?take=50"
         if (-not $response.records -or $response.records.Count -eq 0) {
             return [PSCustomObject]@{
-                Action = 'AddFavorite'; TargetType = 'Secret'; TargetId = $null
+                Action = 'ToggleComment'; TargetType = 'Secret'; TargetId = $null
                 TargetName = $null; Success = $false; ErrorMessage = 'No secrets available'
             }
         }
 
         $secret = $response.records | Get-Random
+        $detail = Invoke-SecretServerApi -Session $Session -Endpoint "secrets/$($secret.id)"
 
-        # Toggle favorite on via POST
-        Invoke-SecretServerApi -Session $Session -Endpoint "secrets/$($secret.id)/favorite" -Method POST -Body @{ isFavorite = $true } | Out-Null
+        # Toggle requiresComment
+        $newState = -not $detail.requiresComment
+        $detail.requiresComment = $newState
+        Invoke-SecretServerApi -Session $Session -Endpoint "secrets/$($secret.id)" -Method PUT -Body $detail | Out-Null
+
+        $label = if ($newState) { 'enabled' } else { 'disabled' }
 
         [PSCustomObject]@{
-            Action       = 'AddFavorite'
+            Action       = 'ToggleComment'
             TargetType   = 'Secret'
             TargetId     = $secret.id
-            TargetName   = "$($secret.name) (favorited)"
+            TargetName   = "$($secret.name) (comment $label)"
             Success      = $true
             ErrorMessage = $null
         }
     }
     catch {
         [PSCustomObject]@{
-            Action = 'AddFavorite'; TargetType = 'Secret'; TargetId = $null
+            Action = 'ToggleComment'; TargetType = 'Secret'; TargetId = $null
             TargetName = $null; Success = $false; ErrorMessage = $_.Exception.Message
         }
     }

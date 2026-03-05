@@ -123,9 +123,13 @@ Each user has per-action weights that control how likely each action is to be se
 | RunReport | 5 |
 | AddFavorite | 5 |
 | ViewSecretPolicy | 5 |
+| ExpireSecret | 3 |
+| ChangePassword | 3 |
 | CreateFolder | 3 |
 | MoveSecret | 3 |
 | TriggerHeartbeat | 3 |
+| ToggleComment | 2 |
+| ToggleCheckout | 2 |
 
 To customize weights for a specific user, update the `ActionWeight` table directly via SQLite or modify `SeedActionWeights.psd1` before adding users.
 

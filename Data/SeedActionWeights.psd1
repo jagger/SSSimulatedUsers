@@ -13,4 +13,8 @@
     AddFavorite       = 5
     TriggerHeartbeat  = 3
     ViewSecretPolicy  = 5
+    ToggleComment     = 2
+    ToggleCheckout    = 2
+    ExpireSecret      = 3
+    ChangePassword    = 3
 }

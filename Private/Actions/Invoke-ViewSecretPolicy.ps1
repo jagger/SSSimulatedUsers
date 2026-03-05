@@ -6,7 +6,7 @@ function Invoke-ViewSecretPolicy {
     )
 
     try {
-        $policies = Invoke-SecretServerApi -Session $Session -Endpoint "secret-policy?take=20"
+        $policies = Invoke-SecretServerApi -Session $Session -Endpoint "secret-policy/search?take=20"
 
         $policyCount = 0
         $policyName = 'N/A'
@@ -17,7 +17,7 @@ function Invoke-ViewSecretPolicy {
             $policyName = $policy.secretPolicyName
 
             # View detail
-            Invoke-SecretServerApi -Session $Session -Endpoint "secret-policy/$($policy.secretPolicyId)" | Out-Null
+            Invoke-SecretServerApi -Session $Session -Endpoint "secret-policy/search?filter.secretPolicyName=$($policy.secretPolicyName)" | Out-Null
         }
 
         [PSCustomObject]@{

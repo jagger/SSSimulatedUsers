@@ -27,7 +27,7 @@ function Invoke-EditSecret {
         }
 
         $newValue = "Updated by TheSimz at $(Get-Date -Format 'yyyy-MM-dd HH:mm')"
-        Invoke-SecretServerApi -Session $Session -Endpoint "secrets/$($secret.id)/fields/$($editableField.slug)" -Method PUT -Body "`"$newValue`"" | Out-Null
+        Invoke-SecretServerApi -Session $Session -Endpoint "secrets/$($secret.id)/fields/$($editableField.slug)" -Method PUT -Body @{ value = $newValue } | Out-Null
 
         [PSCustomObject]@{
             Action       = 'EditSecret'

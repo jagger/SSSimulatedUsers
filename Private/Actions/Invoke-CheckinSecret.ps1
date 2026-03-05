@@ -24,11 +24,11 @@ function Invoke-CheckinSecret {
             }
         }
 
-        # Filter to only secrets checked out by the current user
+        # Filter to only secrets actually checked out by the current user
         $myCheckouts = @()
         foreach ($rec in $response.records) {
             $detail = Invoke-SecretServerApi -Session $Session -Endpoint "secrets/$($rec.id)"
-            if ($detail.checkOutUserId -eq $Session.SSUserId) {
+            if ($detail.checkedOut -and $detail.checkOutUserId -eq $Session.SSUserId) {
                 $myCheckouts += $rec
             }
         }

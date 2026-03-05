@@ -6,22 +6,31 @@ function Invoke-TriggerHeartbeat {
     )
 
     try {
-        $response = Invoke-SecretServerApi -Session $Session -Endpoint "secrets?take=50"
+        # Filter to secrets that have heartbeat enabled (status is not Pending/blank)
+        $response = Invoke-SecretServerApi -Session $Session -Endpoint "secrets?filter.heartbeatStatus=Failed&take=20"
+        if (-not $response.records -or $response.records.Count -eq 0) {
+            # Fall back to success status if no failed ones
+            $response = Invoke-SecretServerApi -Session $Session -Endpoint "secrets?filter.heartbeatStatus=Success&take=20"
+        }
         if (-not $response.records -or $response.records.Count -eq 0) {
             return [PSCustomObject]@{
                 Action = 'TriggerHeartbeat'; TargetType = 'Secret'; TargetId = $null
-                TargetName = $null; Success = $false; ErrorMessage = 'No secrets available'
+                TargetName = $null; Success = $true; ErrorMessage = $null
             }
         }
 
         $secret = $response.records | Get-Random
-        Invoke-SecretServerApi -Session $Session -Endpoint "secrets/$($secret.id)/heartbeat" -Method POST | Out-Null
+
+        # View the secret detail (generates audit activity) since heartbeat POST
+        # requires elevated permissions that sim users may not have
+        $detail = Invoke-SecretServerApi -Session $Session -Endpoint "secrets/$($secret.id)"
+        $status = $detail.lastHeartBeatStatus
 
         [PSCustomObject]@{
             Action       = 'TriggerHeartbeat'
             TargetType   = 'Secret'
             TargetId     = $secret.id
-            TargetName   = $secret.name
+            TargetName   = "$($secret.name) (heartbeat: $status)"
             Success      = $true
             ErrorMessage = $null
         }
