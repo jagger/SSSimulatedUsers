@@ -193,6 +193,10 @@ TheSimz/
 └── Tests/                  # Pester tests
 ```
 
+## Contributing
+
+Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
 ## License
 
-This project is provided as-is for lab and demonstration purposes.
+This project is licensed under the [MIT License](LICENSE).

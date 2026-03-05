@@ -21,5 +21,5 @@
     CmdletsToExport   = @()
     VariablesToExport  = @()
     AliasesToExport    = @()
-    PrivateData        = @{ PSData = @{} }
+    PrivateData        = @{ PSData = @{ LicenseUri = 'https://github.com/jagger/SSSimulatedUsers/blob/main/LICENSE'; ProjectUri = 'https://github.com/jagger/SSSimulatedUsers' } }
 }
