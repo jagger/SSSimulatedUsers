@@ -1,20 +1,35 @@
 function Invoke-PasswordRotation {
     [CmdletBinding()]
-    param()
+    param(
+        [Parameter()]
+        [string]$Username
+    )
 
-    $rotationDays = [int](Get-SimzConfig -Key 'PasswordRotationDays')
-    if ($rotationDays -le 0) { $rotationDays = 14 }
+    if ($Username) {
+        # One-off reset for a specific user
+        $users = Invoke-SimzQuery -Query "SELECT * FROM SimUser WHERE Username = @Username" `
+            -SqlParameters @{ Username = $Username }
+        if (-not $users) {
+            Write-Error "User '$Username' not found in SimUser table"
+            return 0
+        }
+    }
+    else {
+        # Scheduled rotation: find users past their rotation window
+        $rotationDays = [int](Get-SimzConfig -Key 'PasswordRotationDays')
+        if ($rotationDays -le 0) { $rotationDays = 14 }
 
-    $users = Invoke-SimzQuery -Query @"
+        $users = Invoke-SimzQuery -Query @"
 SELECT * FROM SimUser
 WHERE IsEnabled = 1
   AND (PasswordLastChanged IS NULL
        OR julianday('now') - julianday(PasswordLastChanged) >= @Days)
 "@ -SqlParameters @{ Days = $rotationDays }
 
-    if (-not $users) {
-        Write-SimzLog -Message 'Password rotation: no users need rotation' -Level DEBUG -Component 'Engine'
-        return 0
+        if (-not $users) {
+            Write-SimzLog -Message 'Password rotation: no users need rotation' -Level DEBUG -Component 'Engine'
+            return 0
+        }
     }
 
     $rotated = 0
@@ -22,13 +37,11 @@ WHERE IsEnabled = 1
     foreach ($user in @($users)) {
         try {
             $newPassword = New-SimzPassword
-
-            $oldSecure = ConvertTo-SecureString $user.Password -AsPlainText -Force
             $newSecure = ConvertTo-SecureString $newPassword -AsPlainText -Force
 
             $splatAD = @{
                 Identity    = $user.Username
-                OldPassword = $oldSecure
+                Reset       = $true
                 NewPassword = $newSecure
                 ErrorAction = 'Stop'
             }

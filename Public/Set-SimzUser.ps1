@@ -41,12 +41,11 @@ function Set-SimzUser {
     $params = @{ Username = $Username }
 
     if ($PSBoundParameters.ContainsKey('Password') -or $RandomPassword) {
-        # Update AD password first — fail before touching SQLite
-        $oldSecure = ConvertTo-SecureString $user.Password -AsPlainText -Force
+        # Update AD password first (admin reset) — fail before touching SQLite
         $newSecure = ConvertTo-SecureString $Password -AsPlainText -Force
         $splatAD = @{
             Identity    = $Username
-            OldPassword = $oldSecure
+            Reset       = $true
             NewPassword = $newSecure
             ErrorAction = 'Stop'
         }
