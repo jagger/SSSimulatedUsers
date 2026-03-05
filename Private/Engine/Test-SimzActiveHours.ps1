@@ -1,4 +1,4 @@
-function Test-ActiveHours {
+function Test-SimzActiveHours {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]

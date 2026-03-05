@@ -1,4 +1,4 @@
-function Invoke-RunReport {
+function Invoke-SimzRunReport {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]
@@ -7,7 +7,7 @@ function Invoke-RunReport {
 
     try {
         # List available reports
-        $reports = Invoke-SecretServerApi -Session $Session -Endpoint "reports?take=20"
+        $reports = Invoke-SimzApi -Session $Session -Endpoint "reports?take=20"
         if (-not $reports.records -or $reports.records.Count -eq 0) {
             return [PSCustomObject]@{
                 Action = 'RunReport'; TargetType = 'Report'; TargetId = $null
@@ -19,7 +19,7 @@ function Invoke-RunReport {
 
         # Execute the report
         $body = @{ id = $report.id }
-        $result = Invoke-SecretServerApi -Session $Session -Endpoint "reports/execute" -Method POST -Body $body
+        $result = Invoke-SimzApi -Session $Session -Endpoint "reports/execute" -Method POST -Body $body
 
         [PSCustomObject]@{
             Action       = 'RunReport'

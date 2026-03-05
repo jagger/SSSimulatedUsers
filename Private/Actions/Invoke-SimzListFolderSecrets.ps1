@@ -1,4 +1,4 @@
-function Invoke-BrowseFolders {
+function Invoke-SimzListFolderSecrets {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]
@@ -6,31 +6,31 @@ function Invoke-BrowseFolders {
     )
 
     try {
-        $folders = Invoke-SecretServerApi -Session $Session -Endpoint "folders?take=100"
+        # Get available folders
+        $folders = Invoke-SimzApi -Session $Session -Endpoint "folders?take=50"
         if (-not $folders.records -or $folders.records.Count -eq 0) {
             return [PSCustomObject]@{
-                Action = 'BrowseFolders'; TargetType = 'Folder'; TargetId = $null
+                Action = 'ListFolderSecrets'; TargetType = 'Folder'; TargetId = $null
                 TargetName = $null; Success = $false; ErrorMessage = 'No folders available'
             }
         }
 
-        # Pick a random folder and browse its children
         $folder = $folders.records | Get-Random
-        $children = Invoke-SecretServerApi -Session $Session -Endpoint "folders?filter.parentFolderId=$($folder.id)&take=50"
-        $childCount = if ($children.records) { $children.records.Count } else { 0 }
+        $secrets = Invoke-SimzApi -Session $Session -Endpoint "secrets?filter.folderId=$($folder.id)&take=50"
+        $count = if ($secrets.records) { $secrets.records.Count } else { 0 }
 
         [PSCustomObject]@{
-            Action       = 'BrowseFolders'
+            Action       = 'ListFolderSecrets'
             TargetType   = 'Folder'
             TargetId     = $folder.id
-            TargetName   = "$($folder.folderName) ($childCount children)"
+            TargetName   = "$($folder.folderName) ($count secrets)"
             Success      = $true
             ErrorMessage = $null
         }
     }
     catch {
         [PSCustomObject]@{
-            Action = 'BrowseFolders'; TargetType = 'Folder'; TargetId = $null
+            Action = 'ListFolderSecrets'; TargetType = 'Folder'; TargetId = $null
             TargetName = $null; Success = $false; ErrorMessage = $_.Exception.Message
         }
     }

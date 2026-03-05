@@ -1,4 +1,4 @@
-function Invoke-ChangePassword {
+function Invoke-SimzChangePassword {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]
@@ -6,7 +6,7 @@ function Invoke-ChangePassword {
     )
 
     try {
-        $response = Invoke-SecretServerApi -Session $Session -Endpoint "secrets?take=50"
+        $response = Invoke-SimzApi -Session $Session -Endpoint "secrets?take=50"
         if (-not $response.records -or $response.records.Count -eq 0) {
             return [PSCustomObject]@{
                 Action = 'ChangePassword'; TargetType = 'Secret'; TargetId = $null
@@ -19,7 +19,7 @@ function Invoke-ChangePassword {
         $target = $null
 
         foreach ($s in $candidates) {
-            $detail = Invoke-SecretServerApi -Session $Session -Endpoint "secrets/$($s.id)"
+            $detail = Invoke-SimzApi -Session $Session -Endpoint "secrets/$($s.id)"
             if ($detail.autoChangeEnabled) {
                 $target = $s
                 break
@@ -31,7 +31,7 @@ function Invoke-ChangePassword {
         }
 
         try {
-            Invoke-SecretServerApi -Session $Session -Endpoint "secrets/$($target.id)/change-password" -Method POST -Body @{ secretId = $target.id } | Out-Null
+            Invoke-SimzApi -Session $Session -Endpoint "secrets/$($target.id)/change-password" -Method POST -Body @{ secretId = $target.id } | Out-Null
         }
         catch {
             # Password change requires elevated SS role permission

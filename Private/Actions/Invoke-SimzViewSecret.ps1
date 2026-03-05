@@ -1,4 +1,4 @@
-function Invoke-ExpireSecret {
+function Invoke-SimzViewSecret {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]
@@ -6,29 +6,30 @@ function Invoke-ExpireSecret {
     )
 
     try {
-        $response = Invoke-SecretServerApi -Session $Session -Endpoint "secrets?take=50"
+        # Find a secret to view by searching
+        $response = Invoke-SimzApi -Session $Session -Endpoint "secrets?take=50"
         if (-not $response.records -or $response.records.Count -eq 0) {
             return [PSCustomObject]@{
-                Action = 'ExpireSecret'; TargetType = 'Secret'; TargetId = $null
+                Action = 'ViewSecret'; TargetType = 'Secret'; TargetId = $null
                 TargetName = $null; Success = $false; ErrorMessage = 'No secrets available'
             }
         }
 
         $secret = $response.records | Get-Random
-        Invoke-SecretServerApi -Session $Session -Endpoint "secrets/$($secret.id)/expire" -Method POST | Out-Null
+        $detail = Invoke-SimzApi -Session $Session -Endpoint "secrets/$($secret.id)"
 
         [PSCustomObject]@{
-            Action       = 'ExpireSecret'
+            Action       = 'ViewSecret'
             TargetType   = 'Secret'
-            TargetId     = $secret.id
-            TargetName   = "$($secret.name) (expired)"
+            TargetId     = $detail.id
+            TargetName   = $detail.name
             Success      = $true
             ErrorMessage = $null
         }
     }
     catch {
         [PSCustomObject]@{
-            Action = 'ExpireSecret'; TargetType = 'Secret'; TargetId = $null
+            Action = 'ViewSecret'; TargetType = 'Secret'; TargetId = $null
             TargetName = $null; Success = $false; ErrorMessage = $_.Exception.Message
         }
     }

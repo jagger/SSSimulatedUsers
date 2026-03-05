@@ -10,7 +10,7 @@ function Get-SimzActiveUsers {
     }
 
     $activeUsers = foreach ($user in $allUsers) {
-        if (Test-ActiveHours -ActiveHourStart $user.ActiveHourStart -ActiveHourEnd $user.ActiveHourEnd) {
+        if (Test-SimzActiveHours -ActiveHourStart $user.ActiveHourStart -ActiveHourEnd $user.ActiveHourEnd) {
             $dow = (Get-Date).DayOfWeek
             if ($dow -eq 'Saturday' -or $dow -eq 'Sunday') {
                 if ((Get-Random -Minimum 0 -Maximum 100) -lt 5) {

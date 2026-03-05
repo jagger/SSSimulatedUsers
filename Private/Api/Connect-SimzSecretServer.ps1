@@ -1,4 +1,4 @@
-function Connect-SecretServer {
+function Connect-SimzSecretServer {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]

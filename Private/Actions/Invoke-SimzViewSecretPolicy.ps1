@@ -1,4 +1,4 @@
-function Invoke-ViewSecretPolicy {
+function Invoke-SimzViewSecretPolicy {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]
@@ -6,7 +6,7 @@ function Invoke-ViewSecretPolicy {
     )
 
     try {
-        $policies = Invoke-SecretServerApi -Session $Session -Endpoint "secret-policy/search?take=20"
+        $policies = Invoke-SimzApi -Session $Session -Endpoint "secret-policy/search?take=20"
 
         $policyCount = 0
         $policyName = 'N/A'
@@ -17,7 +17,7 @@ function Invoke-ViewSecretPolicy {
             $policyName = $policy.secretPolicyName
 
             # View detail
-            Invoke-SecretServerApi -Session $Session -Endpoint "secret-policy/search?filter.secretPolicyName=$($policy.secretPolicyName)" | Out-Null
+            Invoke-SimzApi -Session $Session -Endpoint "secret-policy/search?filter.secretPolicyName=$($policy.secretPolicyName)" | Out-Null
         }
 
         [PSCustomObject]@{

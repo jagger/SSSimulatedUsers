@@ -18,8 +18,8 @@ function Test-SimzConnection {
     }
 
     try {
-        $session = Connect-SecretServer -BaseUrl $baseUrl -Username $user.Username -Password $user.Password -Domain $user.Domain
-        Disconnect-SecretServer -Session $session
+        $session = Connect-SimzSecretServer -BaseUrl $baseUrl -Username $user.Username -Password $user.Password -Domain $user.Domain
+        Disconnect-SimzSecretServer -Session $session
 
         [PSCustomObject]@{
             Username = $Username

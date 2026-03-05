@@ -1,4 +1,4 @@
-function Invoke-MoveSecret {
+function Invoke-SimzMoveSecret {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]
@@ -6,7 +6,7 @@ function Invoke-MoveSecret {
     )
 
     try {
-        $response = Invoke-SecretServerApi -Session $Session -Endpoint "secrets?take=50"
+        $response = Invoke-SimzApi -Session $Session -Endpoint "secrets?take=50"
         if (-not $response.records -or $response.records.Count -eq 0) {
             return [PSCustomObject]@{
                 Action = 'MoveSecret'; TargetType = 'Secret'; TargetId = $null
@@ -14,7 +14,7 @@ function Invoke-MoveSecret {
             }
         }
 
-        $folders = Invoke-SecretServerApi -Session $Session -Endpoint "folders?take=50"
+        $folders = Invoke-SimzApi -Session $Session -Endpoint "folders?take=50"
         if (-not $folders.records -or $folders.records.Count -eq 0) {
             return [PSCustomObject]@{
                 Action = 'MoveSecret'; TargetType = 'Secret'; TargetId = $null
@@ -26,10 +26,10 @@ function Invoke-MoveSecret {
         $targetFolder = $folders.records | Get-Random
 
         # Get full secret detail, change folderId, PUT back
-        $detail = Invoke-SecretServerApi -Session $Session -Endpoint "secrets/$($secret.id)"
+        $detail = Invoke-SimzApi -Session $Session -Endpoint "secrets/$($secret.id)"
         $detail.folderId = $targetFolder.id
 
-        Invoke-SecretServerApi -Session $Session -Endpoint "secrets/$($secret.id)" -Method PUT -Body $detail | Out-Null
+        Invoke-SimzApi -Session $Session -Endpoint "secrets/$($secret.id)" -Method PUT -Body $detail | Out-Null
 
         [PSCustomObject]@{
             Action       = 'MoveSecret'

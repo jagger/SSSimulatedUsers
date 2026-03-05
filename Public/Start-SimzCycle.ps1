@@ -17,7 +17,7 @@ function Start-SimzCycle {
 
     # Rotate AD passwords for users due for rotation
     try {
-        $rotated = Invoke-PasswordRotation
+        $rotated = Invoke-SimzPasswordRotation
         if ($rotated -gt 0) {
             Write-SimzLog -Message "Rotated passwords for $rotated user(s)" -Component 'Cycle'
         }
@@ -48,7 +48,7 @@ VALUES (@Start, @End, @Total, 0, 0, 0)
 
     foreach ($user in $activeUsers) {
         try {
-            $result = Invoke-UserCycle -User $user -BaseUrl $baseUrl -MinActions $minActions -MaxActions $maxActions
+            $result = Invoke-SimzUserCycle -User $user -BaseUrl $baseUrl -MinActions $minActions -MaxActions $maxActions
             $totalActions += $result.Actions
             $totalErrors += $result.Errors
         }

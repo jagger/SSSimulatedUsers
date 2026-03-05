@@ -38,5 +38,5 @@ Thanks for your interest in contributing to SSSimulatedUsers!
        ErrorMessage = $null
    }
    ```
-4. Register it in `Private/Engine/Get-ActionRegistry.ps1`
+4. Register it in `Private/Engine/Get-SimzActionRegistry.ps1`
 5. Add a default weight in `Data/SeedActionWeights.psd1`

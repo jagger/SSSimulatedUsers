@@ -1,4 +1,4 @@
-function Invoke-AddFavorite {
+function Invoke-SimzAddFavorite {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]
@@ -6,7 +6,7 @@ function Invoke-AddFavorite {
     )
 
     try {
-        $response = Invoke-SecretServerApi -Session $Session -Endpoint "secrets?take=50"
+        $response = Invoke-SimzApi -Session $Session -Endpoint "secrets?take=50"
         if (-not $response.records -or $response.records.Count -eq 0) {
             return [PSCustomObject]@{
                 Action = 'AddFavorite'; TargetType = 'Secret'; TargetId = $null
@@ -17,7 +17,7 @@ function Invoke-AddFavorite {
         $secret = $response.records | Get-Random
 
         # Toggle favorite on via POST
-        Invoke-SecretServerApi -Session $Session -Endpoint "secrets/$($secret.id)/favorite" -Method POST -Body @{ isFavorite = $true } | Out-Null
+        Invoke-SimzApi -Session $Session -Endpoint "secrets/$($secret.id)/favorite" -Method POST -Body @{ isFavorite = $true } | Out-Null
 
         [PSCustomObject]@{
             Action       = 'AddFavorite'

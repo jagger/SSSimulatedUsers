@@ -1,4 +1,4 @@
-function Invoke-PasswordRotation {
+function Invoke-SimzPasswordRotation {
     [CmdletBinding()]
     param(
         [Parameter()]

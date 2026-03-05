@@ -1,4 +1,4 @@
-function Invoke-SearchSecrets {
+function Invoke-SimzSearchSecrets {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]
@@ -9,7 +9,7 @@ function Invoke-SearchSecrets {
     $term = $searchTerms | Get-Random
 
     try {
-        $response = Invoke-SecretServerApi -Session $Session -Endpoint "secrets?filter.searchText=$term&take=25"
+        $response = Invoke-SimzApi -Session $Session -Endpoint "secrets?filter.searchText=$term&take=25"
         $count = if ($response.records) { $response.records.Count } else { 0 }
 
         [PSCustomObject]@{

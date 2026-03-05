@@ -1,4 +1,4 @@
-function Invoke-ToggleComment {
+function Invoke-SimzToggleComment {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]
@@ -6,7 +6,7 @@ function Invoke-ToggleComment {
     )
 
     try {
-        $response = Invoke-SecretServerApi -Session $Session -Endpoint "secrets?take=50"
+        $response = Invoke-SimzApi -Session $Session -Endpoint "secrets?take=50"
         if (-not $response.records -or $response.records.Count -eq 0) {
             return [PSCustomObject]@{
                 Action = 'ToggleComment'; TargetType = 'Secret'; TargetId = $null
@@ -15,12 +15,12 @@ function Invoke-ToggleComment {
         }
 
         $secret = $response.records | Get-Random
-        $detail = Invoke-SecretServerApi -Session $Session -Endpoint "secrets/$($secret.id)"
+        $detail = Invoke-SimzApi -Session $Session -Endpoint "secrets/$($secret.id)"
 
         # Toggle requiresComment
         $newState = -not $detail.requiresComment
         $detail.requiresComment = $newState
-        Invoke-SecretServerApi -Session $Session -Endpoint "secrets/$($secret.id)" -Method PUT -Body $detail | Out-Null
+        Invoke-SimzApi -Session $Session -Endpoint "secrets/$($secret.id)" -Method PUT -Body $detail | Out-Null
 
         $label = if ($newState) { 'enabled' } else { 'disabled' }
 

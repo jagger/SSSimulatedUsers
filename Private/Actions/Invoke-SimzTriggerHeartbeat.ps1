@@ -1,4 +1,4 @@
-function Invoke-TriggerHeartbeat {
+function Invoke-SimzTriggerHeartbeat {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]
@@ -7,10 +7,10 @@ function Invoke-TriggerHeartbeat {
 
     try {
         # Filter to secrets that have heartbeat enabled (status is not Pending/blank)
-        $response = Invoke-SecretServerApi -Session $Session -Endpoint "secrets?filter.heartbeatStatus=Failed&take=20"
+        $response = Invoke-SimzApi -Session $Session -Endpoint "secrets?filter.heartbeatStatus=Failed&take=20"
         if (-not $response.records -or $response.records.Count -eq 0) {
             # Fall back to success status if no failed ones
-            $response = Invoke-SecretServerApi -Session $Session -Endpoint "secrets?filter.heartbeatStatus=Success&take=20"
+            $response = Invoke-SimzApi -Session $Session -Endpoint "secrets?filter.heartbeatStatus=Success&take=20"
         }
         if (-not $response.records -or $response.records.Count -eq 0) {
             return [PSCustomObject]@{
@@ -23,7 +23,7 @@ function Invoke-TriggerHeartbeat {
 
         # View the secret detail (generates audit activity) since heartbeat POST
         # requires elevated permissions that sim users may not have
-        $detail = Invoke-SecretServerApi -Session $Session -Endpoint "secrets/$($secret.id)"
+        $detail = Invoke-SimzApi -Session $Session -Endpoint "secrets/$($secret.id)"
         $status = $detail.lastHeartBeatStatus
 
         [PSCustomObject]@{

@@ -1,4 +1,4 @@
-function Disconnect-SecretServer {
+function Disconnect-SimzSecretServer {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]
@@ -6,7 +6,7 @@ function Disconnect-SecretServer {
     )
 
     try {
-        Invoke-SecretServerApi -Session $Session -Endpoint 'oauth-expiration' -Method POST | Out-Null
+        Invoke-SimzApi -Session $Session -Endpoint 'oauth-expiration' -Method POST | Out-Null
         Write-SimzLog -Message "Disconnected '$($Session.Username)'" -Level DEBUG -Component 'API'
     }
     catch {

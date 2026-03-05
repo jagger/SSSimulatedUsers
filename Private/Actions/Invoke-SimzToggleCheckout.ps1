@@ -1,4 +1,4 @@
-function Invoke-ToggleCheckout {
+function Invoke-SimzToggleCheckout {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]
@@ -6,7 +6,7 @@ function Invoke-ToggleCheckout {
     )
 
     try {
-        $response = Invoke-SecretServerApi -Session $Session -Endpoint "secrets?take=50"
+        $response = Invoke-SimzApi -Session $Session -Endpoint "secrets?take=50"
         if (-not $response.records -or $response.records.Count -eq 0) {
             return [PSCustomObject]@{
                 Action = 'ToggleCheckout'; TargetType = 'Secret'; TargetId = $null
@@ -15,7 +15,7 @@ function Invoke-ToggleCheckout {
         }
 
         $secret = $response.records | Get-Random
-        $detail = Invoke-SecretServerApi -Session $Session -Endpoint "secrets/$($secret.id)"
+        $detail = Invoke-SimzApi -Session $Session -Endpoint "secrets/$($secret.id)"
 
         # Toggle checkOutEnabled — don't disable if the secret is currently checked out
         $newState = -not $detail.checkOutEnabled
@@ -37,7 +37,7 @@ function Invoke-ToggleCheckout {
             $detail.checkOutIntervalMinutes = -1
         }
 
-        Invoke-SecretServerApi -Session $Session -Endpoint "secrets/$($secret.id)" -Method PUT -Body $detail | Out-Null
+        Invoke-SimzApi -Session $Session -Endpoint "secrets/$($secret.id)" -Method PUT -Body $detail | Out-Null
 
         $label = if ($newState) { "enabled ($($detail.checkOutIntervalMinutes)min)" } else { 'disabled' }
 

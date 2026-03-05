@@ -1,4 +1,4 @@
-function Invoke-ListFolderSecrets {
+function Invoke-SimzBrowseFolders {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]
@@ -6,31 +6,31 @@ function Invoke-ListFolderSecrets {
     )
 
     try {
-        # Get available folders
-        $folders = Invoke-SecretServerApi -Session $Session -Endpoint "folders?take=50"
+        $folders = Invoke-SimzApi -Session $Session -Endpoint "folders?take=100"
         if (-not $folders.records -or $folders.records.Count -eq 0) {
             return [PSCustomObject]@{
-                Action = 'ListFolderSecrets'; TargetType = 'Folder'; TargetId = $null
+                Action = 'BrowseFolders'; TargetType = 'Folder'; TargetId = $null
                 TargetName = $null; Success = $false; ErrorMessage = 'No folders available'
             }
         }
 
+        # Pick a random folder and browse its children
         $folder = $folders.records | Get-Random
-        $secrets = Invoke-SecretServerApi -Session $Session -Endpoint "secrets?filter.folderId=$($folder.id)&take=50"
-        $count = if ($secrets.records) { $secrets.records.Count } else { 0 }
+        $children = Invoke-SimzApi -Session $Session -Endpoint "folders?filter.parentFolderId=$($folder.id)&take=50"
+        $childCount = if ($children.records) { $children.records.Count } else { 0 }
 
         [PSCustomObject]@{
-            Action       = 'ListFolderSecrets'
+            Action       = 'BrowseFolders'
             TargetType   = 'Folder'
             TargetId     = $folder.id
-            TargetName   = "$($folder.folderName) ($count secrets)"
+            TargetName   = "$($folder.folderName) ($childCount children)"
             Success      = $true
             ErrorMessage = $null
         }
     }
     catch {
         [PSCustomObject]@{
-            Action = 'ListFolderSecrets'; TargetType = 'Folder'; TargetId = $null
+            Action = 'BrowseFolders'; TargetType = 'Folder'; TargetId = $null
             TargetName = $null; Success = $false; ErrorMessage = $_.Exception.Message
         }
     }

@@ -1,4 +1,4 @@
-function Invoke-CreateFolder {
+function Invoke-SimzCreateFolder {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]
@@ -7,7 +7,7 @@ function Invoke-CreateFolder {
 
     try {
         # Get folders, preferring user's personal folder for write access
-        $folders = Invoke-SecretServerApi -Session $Session -Endpoint "folders?take=50"
+        $folders = Invoke-SimzApi -Session $Session -Endpoint "folders?take=50"
         $parentId = -1
         $parentName = 'Root'
 
@@ -41,7 +41,7 @@ function Invoke-CreateFolder {
             inheritSecretPolicy = $true
         }
 
-        $result = Invoke-SecretServerApi -Session $Session -Endpoint 'folders' -Method POST -Body $body
+        $result = Invoke-SimzApi -Session $Session -Endpoint 'folders' -Method POST -Body $body
 
         [PSCustomObject]@{
             Action       = 'CreateFolder'

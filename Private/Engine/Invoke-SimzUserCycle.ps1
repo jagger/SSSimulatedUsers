@@ -1,4 +1,4 @@
-function Invoke-UserCycle {
+function Invoke-SimzUserCycle {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]
@@ -21,7 +21,7 @@ function Invoke-UserCycle {
     # Authenticate
     $session = $null
     try {
-        $session = Connect-SecretServer -BaseUrl $BaseUrl -Username $username -Password $User.Password -Domain $User.Domain
+        $session = Connect-SimzSecretServer -BaseUrl $BaseUrl -Username $username -Password $User.Password -Domain $User.Domain
     }
     catch {
         Write-SimzLog -Message "Auth failed for '$username', skipping cycle: $_" -Level ERROR -Component 'Engine'
@@ -31,8 +31,8 @@ function Invoke-UserCycle {
     }
 
     # Select actions
-    $actions = Select-UserActions -UserId $userId -MinActions $MinActions -MaxActions $MaxActions
-    $registry = Get-ActionRegistry
+    $actions = Select-SimzUserActions -UserId $userId -MinActions $MinActions -MaxActions $MaxActions
+    $registry = Get-SimzActionRegistry
 
     foreach ($actionName in $actions) {
         $regEntry = $registry[$actionName]
@@ -82,7 +82,7 @@ function Invoke-UserCycle {
 
     # Disconnect
     try {
-        Disconnect-SecretServer -Session $session
+        Disconnect-SimzSecretServer -Session $session
     }
     catch {
         Write-SimzLog -Message "Disconnect failed for '$username' (non-fatal)" -Level WARN -Component 'Engine'

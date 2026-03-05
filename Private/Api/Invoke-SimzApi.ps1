@@ -1,4 +1,4 @@
-function Invoke-SecretServerApi {
+function Invoke-SimzApi {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]

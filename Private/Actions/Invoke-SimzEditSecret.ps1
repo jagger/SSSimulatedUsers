@@ -1,4 +1,4 @@
-function Invoke-EditSecret {
+function Invoke-SimzEditSecret {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]
@@ -6,7 +6,7 @@ function Invoke-EditSecret {
     )
 
     try {
-        $response = Invoke-SecretServerApi -Session $Session -Endpoint "secrets?take=50"
+        $response = Invoke-SimzApi -Session $Session -Endpoint "secrets?take=50"
         if (-not $response.records -or $response.records.Count -eq 0) {
             return [PSCustomObject]@{
                 Action = 'EditSecret'; TargetType = 'Secret'; TargetId = $null
@@ -15,7 +15,7 @@ function Invoke-EditSecret {
         }
 
         $secret = $response.records | Get-Random
-        $detail = Invoke-SecretServerApi -Session $Session -Endpoint "secrets/$($secret.id)"
+        $detail = Invoke-SimzApi -Session $Session -Endpoint "secrets/$($secret.id)"
 
         # Only edit safe fields that won't break heartbeat, RPC, or SS integrations
         $safeFields = @('notes', 'password')
@@ -31,7 +31,7 @@ function Invoke-EditSecret {
             'notes'    { "Updated by TheSimz at $(Get-Date -Format 'yyyy-MM-dd HH:mm')" }
             'password' { New-SimzPassword }
         }
-        Invoke-SecretServerApi -Session $Session -Endpoint "secrets/$($secret.id)/fields/$($editableField.slug)" -Method PUT -Body @{ value = $newValue } | Out-Null
+        Invoke-SimzApi -Session $Session -Endpoint "secrets/$($secret.id)/fields/$($editableField.slug)" -Method PUT -Body @{ value = $newValue } | Out-Null
 
         [PSCustomObject]@{
             Action       = 'EditSecret'

@@ -1,4 +1,4 @@
-function Invoke-CreateSecret {
+function Invoke-SimzCreateSecret {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]
@@ -10,7 +10,7 @@ function Invoke-CreateSecret {
         $templateId = Get-Random -InputObject @(2, 9)
 
         # Get a folder — prefer personal folder for write access
-        $folders = Invoke-SecretServerApi -Session $Session -Endpoint "folders?take=50"
+        $folders = Invoke-SimzApi -Session $Session -Endpoint "folders?take=50"
         $folderId = -1
 
         if ($folders.records -and $folders.records.Count -gt 0) {
@@ -27,7 +27,7 @@ function Invoke-CreateSecret {
         }
 
         # Get a secret stub from the API and set siteId (stub defaults to -1 which is rejected)
-        $stub = Invoke-SecretServerApi -Session $Session -Endpoint "secrets/stub?secretTemplateId=$templateId&folderId=$folderId"
+        $stub = Invoke-SimzApi -Session $Session -Endpoint "secrets/stub?secretTemplateId=$templateId&folderId=$folderId"
         $stub.siteId = 1
 
         # Generate a secret name
@@ -49,7 +49,7 @@ function Invoke-CreateSecret {
         }
 
         # Create the secret
-        $result = Invoke-SecretServerApi -Session $Session -Endpoint 'secrets' -Method POST -Body $stub
+        $result = Invoke-SimzApi -Session $Session -Endpoint 'secrets' -Method POST -Body $stub
 
         [PSCustomObject]@{
             Action       = 'CreateSecret'

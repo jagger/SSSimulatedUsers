@@ -1,4 +1,4 @@
-function Select-UserActions {
+function Select-SimzUserActions {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]

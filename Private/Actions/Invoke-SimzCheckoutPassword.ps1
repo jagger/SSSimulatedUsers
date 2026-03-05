@@ -1,4 +1,4 @@
-function Invoke-CheckoutPassword {
+function Invoke-SimzCheckoutPassword {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]
@@ -6,7 +6,7 @@ function Invoke-CheckoutPassword {
     )
 
     try {
-        $response = Invoke-SecretServerApi -Session $Session -Endpoint "secrets?take=50"
+        $response = Invoke-SimzApi -Session $Session -Endpoint "secrets?take=50"
         if (-not $response.records -or $response.records.Count -eq 0) {
             return [PSCustomObject]@{
                 Action = 'CheckoutPassword'; TargetType = 'Secret'; TargetId = $null
@@ -17,10 +17,10 @@ function Invoke-CheckoutPassword {
         $secret = $response.records | Get-Random
 
         # Always fetch detail (generates realistic traffic)
-        $detail = Invoke-SecretServerApi -Session $Session -Endpoint "secrets/$($secret.id)"
+        $detail = Invoke-SimzApi -Session $Session -Endpoint "secrets/$($secret.id)"
 
         if ($detail.checkOutEnabled) {
-            Invoke-SecretServerApi -Session $Session -Endpoint "secrets/$($secret.id)/check-out" -Method POST | Out-Null
+            Invoke-SimzApi -Session $Session -Endpoint "secrets/$($secret.id)/check-out" -Method POST | Out-Null
             $targetName = "$($detail.name) (checked-out)"
         }
         else {
