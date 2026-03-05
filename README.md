@@ -188,7 +188,7 @@ TheSimz/
 ├── Data/                   # Schema, seed data, SS reports, SQLite DB (runtime)
 ├── Public/                 # Exported cmdlets (10 functions)
 ├── Private/
-│   ├── Actions/            # 14 Secret Server action functions
+│   ├── Actions/            # 18 Secret Server action functions
 │   ├── Api/                # REST client + OAuth2 auth
 │   ├── Data/               # SQLite helpers
 │   ├── Engine/             # Cycle orchestration + action selection
