@@ -1,7 +1,9 @@
 # SSSimulatedUsers (TheSimz)
 
-PowerShell module that simulates realistic Secret Server user activity for lab and demo environments. AD-authenticated users perform randomized actions (0-15 per 30-minute cycle) against an on-prem Delinea Secret Server instance, generating audit trail data that looks like real-world usage. Add as many or as few simulated accounts as your environment needs.
+PowerShell module that simulates realistic Secret Server user activity for lab and demo environments. AD-authenticated users perform randomized actions (0-15 per 30-minute cycle) against an on-prem Delinea Secret Server instance, generating audit trail data that looks like real-world usage*. Add as many or as few simulated accounts as your environment needs.
 
+
+<sub>\* assuming your users login one at a time every 30 min and take a few random actions that don't relate to each other
 ## Prerequisites
 
 - Windows Server 2016+ with PowerShell 5.1+
