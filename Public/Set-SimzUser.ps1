@@ -41,10 +41,28 @@ function Set-SimzUser {
     $params = @{ Username = $Username }
 
     if ($PSBoundParameters.ContainsKey('Password') -or $RandomPassword) {
+        # Update AD password first — fail before touching SQLite
+        $oldSecure = ConvertTo-SecureString $user.Password -AsPlainText -Force
+        $newSecure = ConvertTo-SecureString $Password -AsPlainText -Force
+        $splatAD = @{
+            Identity    = $Username
+            OldPassword = $oldSecure
+            NewPassword = $newSecure
+            ErrorAction = 'Stop'
+        }
+        try {
+            Set-ADAccountPassword @splatAD
+            Write-SimzLog -Message "AD password updated for '$Username'" -Component 'UserMgmt'
+        }
+        catch {
+            Write-Error "Failed to update AD password for '$Username': $_"
+            return
+        }
+
         $sets += "Password = @Password"
+        $sets += "PasswordLastChanged = datetime('now')"
         $params['Password'] = $Password
     }
-    if ($RandomPassword) { $sets += "PasswordLastChanged = datetime('now')" }
     if ($PSBoundParameters.ContainsKey('Domain'))          { $sets += "Domain = @Domain";                   $params['Domain'] = $Domain }
     if ($PSBoundParameters.ContainsKey('ActiveHourStart')) { $sets += "ActiveHourStart = @ActiveHourStart"; $params['ActiveHourStart'] = $ActiveHourStart }
     if ($PSBoundParameters.ContainsKey('ActiveHourEnd'))   { $sets += "ActiveHourEnd = @ActiveHourEnd";     $params['ActiveHourEnd'] = $ActiveHourEnd }
