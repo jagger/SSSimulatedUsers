@@ -22,9 +22,10 @@ function Invoke-CreateFolder {
                 $parentName = $personalFolder.folderName
             }
             else {
-                $parent = $folders.records | Get-Random
-                $parentId = $parent.id
-                $parentName = $parent.folderName
+                return [PSCustomObject]@{
+                    Action = 'CreateFolder'; TargetType = 'Folder'; TargetId = $null
+                    TargetName = 'No personal folder found'; Success = $true; ErrorMessage = $null
+                }
             }
         }
 

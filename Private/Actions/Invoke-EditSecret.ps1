@@ -17,16 +17,20 @@ function Invoke-EditSecret {
         $secret = $response.records | Get-Random
         $detail = Invoke-SecretServerApi -Session $Session -Endpoint "secrets/$($secret.id)"
 
-        # Find an editable text field (prefer Notes)
-        $editableField = $detail.items | Where-Object { -not $_.isFile -and $_.slug } | Get-Random
+        # Only edit safe fields that won't break heartbeat, RPC, or SS integrations
+        $safeFields = @('notes', 'password')
+        $editableField = $detail.items | Where-Object { -not $_.isFile -and $_.slug -in $safeFields } | Get-Random
         if (-not $editableField) {
             return [PSCustomObject]@{
                 Action = 'EditSecret'; TargetType = 'Secret'; TargetId = $secret.id
-                TargetName = $secret.name; Success = $false; ErrorMessage = 'No editable fields found'
+                TargetName = "$($secret.name) (no safe editable fields)"; Success = $true; ErrorMessage = $null
             }
         }
 
-        $newValue = "Updated by TheSimz at $(Get-Date -Format 'yyyy-MM-dd HH:mm')"
+        $newValue = switch ($editableField.slug) {
+            'notes'    { "Updated by TheSimz at $(Get-Date -Format 'yyyy-MM-dd HH:mm')" }
+            'password' { New-SimzPassword }
+        }
         Invoke-SecretServerApi -Session $Session -Endpoint "secrets/$($secret.id)/fields/$($editableField.slug)" -Method PUT -Body @{ value = $newValue } | Out-Null
 
         [PSCustomObject]@{
