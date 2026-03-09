@@ -24,10 +24,43 @@ function Invoke-SimzUserCycle {
         $session = Connect-SimzSecretServer -BaseUrl $BaseUrl -Username $username -Password $User.Password -Domain $User.Domain
     }
     catch {
-        Write-SimzLog -Message "Auth failed for '$username', skipping cycle: $_" -Level ERROR -Component 'Engine'
-        Write-SimzActionLog -UserId $userId -Username $username -ActionName 'Authenticate' -Result 'Failure' -ErrorMessage $_.Exception.Message
-        $results.Errors++
-        return $results
+        $authError = $_.Exception.Message
+        $authFailureAction = Get-SimzConfig -Key 'AuthFailureAction'
+
+        if ($authFailureAction -eq 'RotateAndAlert') {
+            Write-SimzLog -Message "Auth failed for '$username', attempting password rotation..." -Level WARN -Component 'Engine'
+            Write-SimzActionLog -UserId $userId -Username $username -ActionName 'Authenticate' -Result 'Failure' -ErrorMessage $authError
+
+            $rotationCount = Invoke-SimzPasswordRotation -Username $username
+
+            if ($rotationCount -gt 0) {
+                # Re-read updated password from SQLite
+                $newPassword = Invoke-SimzQuery -Query "SELECT Password FROM SimUser WHERE Username = @Username" `
+                    -SqlParameters @{ Username = $username } -Scalar
+
+                try {
+                    $session = Connect-SimzSecretServer -BaseUrl $BaseUrl -Username $username -Password $newPassword -Domain $User.Domain
+                    Write-SimzLog -Message "Password rotated and auth recovered for '$username'" -Level WARN -Component 'Engine'
+                }
+                catch {
+                    Write-SimzLog -Message "AUTH ALERT: rotation did not fix auth for '$username': $($_.Exception.Message)" -Level ERROR -Component 'Engine'
+                    $results.Errors++
+                    return $results
+                }
+            }
+            else {
+                Write-SimzLog -Message "AUTH ALERT: rotation failed for '$username', cannot retry" -Level ERROR -Component 'Engine'
+                $results.Errors++
+                return $results
+            }
+        }
+        else {
+            # AlertOnly (default) — log and skip
+            Write-SimzLog -Message "Auth failed for '$username', skipping cycle: $authError" -Level ERROR -Component 'Engine'
+            Write-SimzActionLog -UserId $userId -Username $username -ActionName 'Authenticate' -Result 'Failure' -ErrorMessage $authError
+            $results.Errors++
+            return $results
+        }
     }
 
     # Select actions

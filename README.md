@@ -105,6 +105,8 @@ All configuration is stored in the `Config` SQLite table. View current values wi
 | `MinActionsPerCycle` | `0` | Minimum actions a user performs per cycle |
 | `MaxActionsPerCycle` | `15` | Maximum actions a user performs per cycle |
 | `LogRetentionDays` | `30` | Days to retain action log entries |
+| `PasswordRotationDays` | `14` | Days between automatic password rotations |
+| `AuthFailureAction` | `AlertOnly` | Auth failure behavior: `AlertOnly` (skip user) or `RotateAndAlert` (rotate password + retry) |
 
 ## Action Weights
 

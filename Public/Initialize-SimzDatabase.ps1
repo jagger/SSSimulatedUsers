@@ -38,6 +38,7 @@ function Initialize-SimzDatabase {
             LogRetentionDays   = '30'
             DefaultDomain        = 'LAB'
             PasswordRotationDays = '14'
+            AuthFailureAction    = 'AlertOnly'
         }
 
         foreach ($kv in $defaults.GetEnumerator()) {
@@ -55,6 +56,13 @@ function Initialize-SimzDatabase {
     if (-not $rotCfg) {
         Invoke-SimzQuery -Query "INSERT INTO Config (Key, Value) VALUES ('PasswordRotationDays', '14')"
         Write-SimzLog -Message 'Seeded PasswordRotationDays config (default: 14)' -Component 'Database'
+    }
+
+    # Ensure AuthFailureAction config exists (for existing DBs)
+    $authCfg = Invoke-SimzQuery -Query "SELECT Value FROM Config WHERE Key = 'AuthFailureAction'" -Scalar
+    if (-not $authCfg) {
+        Invoke-SimzQuery -Query "INSERT INTO Config (Key, Value) VALUES ('AuthFailureAction', 'AlertOnly')"
+        Write-SimzLog -Message 'Seeded AuthFailureAction config (default: AlertOnly)' -Component 'Database'
     }
 
     Write-SimzLog -Message 'Database initialized successfully' -Component 'Database'
