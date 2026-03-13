@@ -1,4 +1,6 @@
-# SSSimulatedUsers (TheSimz)
+# RobOtters - Secret Server Activity Simulator
+
+![RobOtter mascot](RobOtter.jpg)
 
 PowerShell module that simulates realistic Secret Server user activity for lab and demo environments. AD-authenticated users perform randomized actions (0-15 per 30-minute cycle) against an on-prem Delinea Secret Server instance, generating audit trail data that looks like real-world usage*. Add as many or as few simulated accounts as your environment needs.
 
@@ -22,21 +24,21 @@ git clone https://github.com/jagger/SSSimulatedUsers.git C:\projects\TheSimz
 Install-Module -Name PSSQLite -Scope CurrentUser
 
 # Import the module
-Import-Module C:\projects\TheSimz\TheSimz.psd1
+Import-Module C:\projects\TheSimz\RobOtters.psd1
 ```
 
 ## Initial Setup
 
 ```powershell
 # 1. Create the SQLite database and seed default config
-Initialize-SimzDatabase
+Initialize-RODatabase
 
 # 2. Point to your Secret Server instance
-Set-SimzConfig -Key 'SecretServerUrl' -Value 'https://yourserver/SecretServer'
-Set-SimzConfig -Key 'DefaultDomain' -Value 'YOURDOMAIN'
+Set-ROConfig -Key 'SecretServerUrl' -Value 'https://yourserver/SecretServer'
+Set-ROConfig -Key 'DefaultDomain' -Value 'YOURDOMAIN'
 
 # 3. Verify connectivity
-Test-SimzConnection
+Test-ROConnection
 ```
 
 ## User Management
@@ -46,7 +48,7 @@ Simulated users are AD accounts whose credentials are stored locally in the SQLi
 ### Add a user
 
 ```powershell
-Add-SimzUser -Username 'svc.sim01' -Password 'P@ssw0rd!' -Domain 'LAB'
+Add-ROUser -Username 'svc.sim01' -Password 'P@ssw0rd!' -Domain 'LAB'
 ```
 
 Optional parameters:
@@ -56,21 +58,21 @@ Optional parameters:
 ### List users
 
 ```powershell
-Get-SimzUser                         # all users
-Get-SimzUser -Username 'svc.sim01'   # specific user
+Get-ROUser                         # all users
+Get-ROUser -Username 'svc.sim01'   # specific user
 ```
 
 ### Update a user
 
 ```powershell
-Set-SimzUser -Username 'svc.sim01' -ActiveHourEnd '19:00'
-Set-SimzUser -Username 'svc.sim01' -IsEnabled $false   # disable without deleting
+Set-ROUser -Username 'svc.sim01' -ActiveHourEnd '19:00'
+Set-ROUser -Username 'svc.sim01' -IsEnabled $false   # disable without deleting
 ```
 
 ### Remove a user
 
 ```powershell
-Remove-SimzUser -Username 'svc.sim01'
+Remove-ROUser -Username 'svc.sim01'
 ```
 
 ## Running
@@ -78,25 +80,25 @@ Remove-SimzUser -Username 'svc.sim01'
 ### Manual execution
 
 ```powershell
-Import-Module C:\projects\TheSimz\TheSimz.psd1
-Start-SimzCycle
+Import-Module C:\projects\TheSimz\RobOtters.psd1
+Start-ROCycle
 ```
 
 Each cycle iterates through all enabled users, checks whether they are within their active hours, selects a random number of actions (0-15), and executes them against Secret Server.
 
 ### Scheduled task (recommended)
 
-Run `Register-SimzTask.ps1` as Administrator to create a Windows Task Scheduler job that fires every 30 minutes:
+Run `Register-ROTask.ps1` as Administrator to create a Windows Task Scheduler job that fires every 30 minutes:
 
 ```powershell
-.\Register-SimzTask.ps1
+.\Register-ROTask.ps1
 ```
 
 > **Note:** Edit the script first if your module is installed at a path other than `C:\projects\TheSimz`.
 
 ## Configuration
 
-All configuration is stored in the `Config` SQLite table. View current values with `Get-SimzConfig` and update with `Set-SimzConfig`.
+All configuration is stored in the `Config` SQLite table. View current values with `Get-ROConfig` and update with `Set-ROConfig`.
 
 | Key | Default | Description |
 |-----|---------|-------------|
@@ -147,8 +149,8 @@ For easy monitoring inside Secret Server, put all your simulated accounts into a
 
 | Report | File | Description |
 |--------|------|-------------|
-| User Activity Summary | `SimzUserActivity.sql` | Per-user action counts and last-active timestamps (today, 7d, 30d) |
-| Full Audit Trail | `SimzFullAuditTrail.sql` | All secret, folder, and user audit events with SS date picker support |
+| User Activity Summary | `ROUserActivity.sql` | Per-user action counts and last-active timestamps (today, 7d, 30d) |
+| Full Audit Trail | `ROFullAuditTrail.sql` | All secret, folder, and user audit events with SS date picker support |
 
 4. **Update the group name** in each SQL file to match your AD group (default: `SimulatedUsers`)
 
@@ -157,7 +159,7 @@ For easy monitoring inside Secret Server, put all your simulated accounts into a
 In Secret Server:
 1. Go to **Admin > Reports > New Report**
 2. Set **Category** to `User`
-3. Paste the contents of `Data/Reports/SimzUserActivity.sql`
+3. Paste the contents of `Data/Reports/ROUserActivity.sql`
 4. Name it something like "Simulated User Activity"
 5. Save and run
 
@@ -167,13 +169,13 @@ In Secret Server:
 
 ```powershell
 # Last 20 actions
-Get-SimzActionLog -Last 20
+Get-ROActionLog -Last 20
 
 # Filter by user
-Get-SimzActionLog -Username 'svc.sim01' -Since (Get-Date).AddDays(-1)
+Get-ROActionLog -Username 'svc.sim01' -Since (Get-Date).AddDays(-1)
 
 # Filter by action type
-Get-SimzActionLog -ActionName 'ViewSecret' -Last 50
+Get-ROActionLog -ActionName 'ViewSecret' -Last 50
 ```
 
 ### Log files
@@ -184,11 +186,11 @@ Daily rotating log files are written to the `Logs/` directory. Each entry includ
 
 ```
 TheSimz/
-├── TheSimz.psd1            # Module manifest
-├── TheSimz.psm1            # Dot-source loader
-├── Register-SimzTask.ps1   # Task Scheduler registration script
+├── RobOtters.psd1          # Module manifest
+├── RobOtters.psm1          # Dot-source loader
+├── Register-ROTask.ps1     # Task Scheduler registration script
 ├── Data/                   # Schema, seed data, SS reports, SQLite DB (runtime)
-├── Public/                 # Exported cmdlets (10 functions)
+├── Public/                 # Exported cmdlets (13 functions)
 ├── Private/
 │   ├── Actions/            # 18 Secret Server action functions
 │   ├── Api/                # REST client + OAuth2 auth

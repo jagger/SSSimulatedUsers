@@ -16,9 +16,9 @@ Thanks for your interest in contributing to SSSimulatedUsers!
 
 ## Coding Conventions
 
-- **Verb-Noun** naming: public functions use the `Simz` noun prefix
+- **Verb-Noun** naming: public functions use the `RO` noun prefix
 - All functions use `[CmdletBinding()]` and named parameters
-- Use `Write-SimzLog` for operational logging (not `Write-Host`)
+- Use `Write-ROLog` for operational logging (not `Write-Host`)
 - SQL queries must use parameterized queries via `-SqlParameters`
 - No aliases in scripts; use full cmdlet names
 - Prefer splatting for calls with 3+ parameters
@@ -38,5 +38,5 @@ Thanks for your interest in contributing to SSSimulatedUsers!
        ErrorMessage = $null
    }
    ```
-4. Register it in `Private/Engine/Get-SimzActionRegistry.ps1`
+4. Register it in `Private/Engine/Get-ROActionRegistry.ps1`
 5. Add a default weight in `Data/SeedActionWeights.psd1`
