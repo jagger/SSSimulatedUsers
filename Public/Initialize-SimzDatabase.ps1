@@ -81,6 +81,29 @@ function Initialize-SimzDatabase {
         Write-SimzLog -Message 'Seeded AccessSnapshotMaxAgeDays config (default: 7)' -Component 'Database'
     }
 
+    # Migrate: backfill missing action weights for existing users
+    $seedWeightPath = Join-Path $PSScriptRoot '..\Data\SeedActionWeights.psd1'
+    $seedWeightPath = [System.IO.Path]::GetFullPath($seedWeightPath)
+    if (Test-Path $seedWeightPath) {
+        $seedWeights = Invoke-Expression (Get-Content -Path $seedWeightPath -Raw)
+        $users = Invoke-SimzQuery -Query "SELECT UserId FROM SimUser"
+        if ($users) {
+            foreach ($user in $users) {
+                foreach ($kv in $seedWeights.GetEnumerator()) {
+                    Invoke-SimzQuery -Query @"
+INSERT OR IGNORE INTO ActionWeight (UserId, ActionName, Weight)
+VALUES (@UserId, @ActionName, @Weight)
+"@ -SqlParameters @{
+                        UserId     = $user.UserId
+                        ActionName = $kv.Key
+                        Weight     = $kv.Value
+                    }
+                }
+            }
+            Write-SimzLog -Message 'Backfilled any missing action weights for existing users' -Component 'Database'
+        }
+    }
+
     # Migrate: create UserAccess table if missing (for existing DBs)
     $tables = Invoke-SimzQuery -Query "SELECT name FROM sqlite_master WHERE type='table' AND name='UserAccess'"
     if (-not $tables) {
