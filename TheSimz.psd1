@@ -17,6 +17,7 @@
         'Get-SimzConfig'
         'Set-SimzConfig'
         'Test-SimzConnection'
+        'Get-SimzAccess'
     )
     CmdletsToExport   = @()
     VariablesToExport  = @()

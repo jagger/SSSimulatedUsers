@@ -38,6 +38,17 @@ CREATE TABLE IF NOT EXISTS ActionLog (
     DurationMs   INTEGER
 );
 
+CREATE TABLE IF NOT EXISTS UserAccess (
+    AccessId      INTEGER PRIMARY KEY AUTOINCREMENT,
+    UserId        INTEGER NOT NULL REFERENCES SimUser(UserId) ON DELETE CASCADE,
+    Username      TEXT NOT NULL,
+    FolderCount   INTEGER NOT NULL DEFAULT 0,
+    SecretCount   INTEGER NOT NULL DEFAULT 0,
+    TemplateNames TEXT,                                    -- Denormalized comma-separated list for display
+    CheckedAt     TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE(UserId)                                         -- Enables upsert via ON CONFLICT
+);
+
 CREATE TABLE IF NOT EXISTS CycleLog (
     CycleId      INTEGER PRIMARY KEY AUTOINCREMENT,
     StartTime    TEXT NOT NULL,

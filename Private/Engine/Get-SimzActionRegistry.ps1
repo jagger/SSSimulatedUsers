@@ -21,5 +21,6 @@ function Get-SimzActionRegistry {
         ToggleCheckout    = @{ Function = 'Invoke-SimzToggleCheckout';    Category = 'Management' }
         ExpireSecret      = @{ Function = 'Invoke-SimzExpireSecret';      Category = 'Management' }
         ChangePassword    = @{ Function = 'Invoke-SimzChangePassword';    Category = 'Advanced' }
+        LaunchSecret      = @{ Function = 'Invoke-SimzLaunchSecret';     Category = 'Advanced' }
     }
 }

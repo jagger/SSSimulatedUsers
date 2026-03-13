@@ -17,4 +17,5 @@
     ToggleCheckout    = 2
     ExpireSecret      = 3
     ChangePassword    = 3
+    LaunchSecret      = 8
 }

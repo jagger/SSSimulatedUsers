@@ -38,7 +38,9 @@ function Initialize-SimzDatabase {
             LogRetentionDays   = '30'
             DefaultDomain        = 'LAB'
             PasswordRotationDays = '14'
-            AuthFailureAction    = 'AlertOnly'
+            AuthFailureAction          = 'AlertOnly'
+            LauncherTemplateId         = '6052'
+            AccessSnapshotMaxAgeDays   = '7'
         }
 
         foreach ($kv in $defaults.GetEnumerator()) {
@@ -63,6 +65,38 @@ function Initialize-SimzDatabase {
     if (-not $authCfg) {
         Invoke-SimzQuery -Query "INSERT INTO Config (Key, Value) VALUES ('AuthFailureAction', 'AlertOnly')"
         Write-SimzLog -Message 'Seeded AuthFailureAction config (default: AlertOnly)' -Component 'Database'
+    }
+
+    # Ensure LauncherTemplateId config exists (for existing DBs)
+    $launcherCfg = Invoke-SimzQuery -Query "SELECT Value FROM Config WHERE Key = 'LauncherTemplateId'" -Scalar
+    if (-not $launcherCfg) {
+        Invoke-SimzQuery -Query "INSERT INTO Config (Key, Value) VALUES ('LauncherTemplateId', '6052')"
+        Write-SimzLog -Message 'Seeded LauncherTemplateId config (default: 6052)' -Component 'Database'
+    }
+
+    # Ensure AccessSnapshotMaxAgeDays config exists (for existing DBs)
+    $accessAgeCfg = Invoke-SimzQuery -Query "SELECT Value FROM Config WHERE Key = 'AccessSnapshotMaxAgeDays'" -Scalar
+    if (-not $accessAgeCfg) {
+        Invoke-SimzQuery -Query "INSERT INTO Config (Key, Value) VALUES ('AccessSnapshotMaxAgeDays', '7')"
+        Write-SimzLog -Message 'Seeded AccessSnapshotMaxAgeDays config (default: 7)' -Component 'Database'
+    }
+
+    # Migrate: create UserAccess table if missing (for existing DBs)
+    $tables = Invoke-SimzQuery -Query "SELECT name FROM sqlite_master WHERE type='table' AND name='UserAccess'"
+    if (-not $tables) {
+        Invoke-SimzQuery -Query @"
+CREATE TABLE IF NOT EXISTS UserAccess (
+    AccessId      INTEGER PRIMARY KEY AUTOINCREMENT,
+    UserId        INTEGER NOT NULL REFERENCES SimUser(UserId) ON DELETE CASCADE,
+    Username      TEXT NOT NULL,
+    FolderCount   INTEGER NOT NULL DEFAULT 0,
+    SecretCount   INTEGER NOT NULL DEFAULT 0,
+    TemplateNames TEXT,
+    CheckedAt     TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE(UserId)
+);
+"@
+        Write-SimzLog -Message 'Migrated: created UserAccess table' -Component 'Database'
     }
 
     Write-SimzLog -Message 'Database initialized successfully' -Component 'Database'
