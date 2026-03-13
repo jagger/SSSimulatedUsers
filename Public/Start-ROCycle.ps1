@@ -1,4 +1,35 @@
 function Start-ROCycle {
+    <#
+    .SYNOPSIS
+        Run a simulation cycle against Secret Server
+    .DESCRIPTION
+        Executes a simulation cycle. In full mode (no -User), rotates passwords
+        for users due for rotation, then iterates through all enabled users
+        within their active hours, selecting a random number of actions
+        (MinActionsPerCycle to MaxActionsPerCycle) per user. In single-user mode
+        (-User), runs only for the specified user. Use -Force to override active
+        hour restrictions. Returns a cycle summary object. Supports -WhatIf.
+    .PARAMETER User
+        Run cycle for a single user only.
+    .PARAMETER Force
+        Override active hour restrictions.
+    .EXAMPLE
+        Start-ROCycle
+        Full cycle for all active users.
+    .EXAMPLE
+        Start-ROCycle -User 'svc.sim01'
+        Single-user cycle.
+    .EXAMPLE
+        Start-ROCycle -User 'svc.sim01' -Force
+        Ignore active hours for the specified user.
+    .EXAMPLE
+        Start-ROCycle -WhatIf
+        Preview what would run without executing.
+    .OUTPUTS
+        PSCustomObject with StartTime, EndTime, TotalUsers, ActiveUsers, TotalActions, Errors
+    .LINK
+        Docs/commands/Start-ROCycle.md
+    #>
     [CmdletBinding(SupportsShouldProcess)]
     param(
         [Parameter()]

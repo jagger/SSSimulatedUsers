@@ -1,4 +1,24 @@
 function Test-ROConnection {
+    <#
+    .SYNOPSIS
+        Test Secret Server authentication for a simulated user
+    .DESCRIPTION
+        Authenticates the specified user against Secret Server using their
+        stored credentials, then disconnects. Returns a status object
+        indicating success or failure. Requires SecretServerUrl to be
+        configured.
+    .PARAMETER Username
+        Username of the simulated user to test.
+    .EXAMPLE
+        Test-ROConnection -Username 'svc.sim01'
+    .EXAMPLE
+        Get-ROUser | ForEach-Object { Test-ROConnection -Username $_.Username }
+        Test all users.
+    .OUTPUTS
+        PSCustomObject with Username, BaseUrl, Status (Success/Failed), Message properties.
+    .LINK
+        Docs/commands/Test-ROConnection.md
+    #>
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]

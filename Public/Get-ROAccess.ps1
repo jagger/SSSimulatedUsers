@@ -1,4 +1,34 @@
 function Get-ROAccess {
+    <#
+    .SYNOPSIS
+        View user access snapshots showing folders, secrets, and templates per user
+    .DESCRIPTION
+        Queries cached access data from the UserAccess table. Data is
+        automatically refreshed when older than AccessSnapshotMaxAgeDays
+        (default 7). Use -Refresh to force an update from Secret Server.
+        Use -Purge to clear all cached access data. Without -Username,
+        returns data for all enabled users.
+    .PARAMETER Username
+        Filter to a specific user. Part of the Query parameter set.
+    .PARAMETER Refresh
+        Force refresh from Secret Server for all queried users.
+        Part of the Query parameter set.
+    .PARAMETER Purge
+        Clear all cached UserAccess data. Part of the Purge parameter set.
+    .EXAMPLE
+        Get-ROAccess
+        View access for all users (auto-refreshes stale data).
+    .EXAMPLE
+        Get-ROAccess -Username 'svc.sim01' -Refresh
+        Force refresh for one user.
+    .EXAMPLE
+        Get-ROAccess -Purge
+        Clear all cached access data.
+    .OUTPUTS
+        PSCustomObject[] with Username, FolderCount, SecretCount, TemplateCount, TemplateNames, CheckedAt properties.
+    .LINK
+        Docs/commands/Get-ROAccess.md
+    #>
     [CmdletBinding(DefaultParameterSetName = 'Query')]
     param(
         [Parameter(ParameterSetName = 'Query')]

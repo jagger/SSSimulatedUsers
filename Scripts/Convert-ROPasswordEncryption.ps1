@@ -160,7 +160,9 @@ catch {
 }
 
 $envKey = $env:RO_ENCRYPT_KEY
-$newArgs = "-ExecutionPolicy Bypass -NoProfile -Command `"`$env:RO_ENCRYPT_KEY = '$envKey'; Import-Module C:\projects\TheSimz\RobOtters.psd1; Start-ROCycle`""
+$modulePath = Join-Path $PSScriptRoot '..\RobOtters.psd1'
+$modulePath = [System.IO.Path]::GetFullPath($modulePath)
+$newArgs = "-ExecutionPolicy Bypass -NoProfile -Command `"`$env:RO_ENCRYPT_KEY = '$envKey'; Import-Module '$modulePath'; Start-ROCycle`""
 
 $action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument $newArgs
 Set-ScheduledTask -TaskName $taskName -Action $action | Out-Null

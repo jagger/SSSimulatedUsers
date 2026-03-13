@@ -1,10 +1,10 @@
-# Contributing
+# Contributing to RobOtters
 
-Thanks for your interest in contributing to SSSimulatedUsers!
+Thanks for your interest in contributing!
 
 ## Reporting Issues
 
-- Use [GitHub Issues](https://github.com/jagger/SSSimulatedUsers/issues) to report bugs or request features
+- Use GitHub Issues to report bugs or request features
 - Include your PowerShell version (`$PSVersionTable`), Secret Server version, and steps to reproduce
 
 ## Submitting Changes
@@ -16,16 +16,23 @@ Thanks for your interest in contributing to SSSimulatedUsers!
 
 ## Coding Conventions
 
-- **Verb-Noun** naming: public functions use the `RO` noun prefix
+- **Verb-Noun** naming: all functions (public and private) use the `RO` noun prefix (`Verb-RO<Noun>`)
 - All functions use `[CmdletBinding()]` and named parameters
 - Use `Write-ROLog` for operational logging (not `Write-Host`)
 - SQL queries must use parameterized queries via `-SqlParameters`
 - No aliases in scripts; use full cmdlet names
 - Prefer splatting for calls with 3+ parameters
+- No Unicode in .ps1 files -- PowerShell 5.1 without BOM treats files as ANSI
+
+## Adding a New Public Command
+
+1. Create the function in `Public/` with comment-based help (SYNOPSIS, DESCRIPTION, PARAMETER, EXAMPLE, OUTPUTS, LINK)
+2. Add a command reference page in `Docs/commands/`
+3. Export the function name in `RobOtters.psd1` FunctionsToExport
 
 ## Adding a New Action
 
-1. Create a function in `Private/Actions/` named `Invoke-YourAction.ps1`
+1. Create a function in `Private/Actions/` named `Invoke-RO<YourAction>.ps1`
 2. Accept a `[PSCustomObject]$Session` parameter
 3. Return the standard result object:
    ```powershell

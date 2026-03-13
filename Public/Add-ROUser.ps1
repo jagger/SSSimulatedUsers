@@ -1,4 +1,30 @@
 function Add-ROUser {
+    <#
+    .SYNOPSIS
+        Register a simulated AD user in the RobOtters database
+    .DESCRIPTION
+        Adds a new simulated user. The password is encrypted via DPAPI before
+        storage. Action weights are automatically seeded from
+        Data/SeedActionWeights.psd1. Returns the new user object.
+    .PARAMETER Username
+        AD username for the simulated user.
+    .PARAMETER Password
+        Plain-text password (encrypted at rest via DPAPI).
+    .PARAMETER Domain
+        AD domain name.
+    .PARAMETER ActiveHourStart
+        Earliest time the user will be active (HH:mm). Defaults to '07:00'.
+    .PARAMETER ActiveHourEnd
+        Latest time the user will be active (HH:mm). Defaults to '17:00'.
+    .EXAMPLE
+        Add-ROUser -Username 'svc.sim01' -Password 'P@ssw0rd!' -Domain 'LAB'
+    .EXAMPLE
+        Add-ROUser -Username 'svc.sim02' -Password 'S3cret!' -Domain 'LAB' -ActiveHourStart '09:00' -ActiveHourEnd '21:00'
+    .OUTPUTS
+        PSCustomObject - the newly created user record
+    .LINK
+        Docs/commands/Add-ROUser.md
+    #>
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]

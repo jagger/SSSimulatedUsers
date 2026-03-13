@@ -1,4 +1,33 @@
 function Import-ROConfig {
+    <#
+    .SYNOPSIS
+        Import configuration and users from a JSON file
+    .DESCRIPTION
+        Imports config and/or users from a JSON file created by
+        Export-ROConfig. Use -ConfigOnly to import only configuration
+        keys. Use -UsersOnly to import only user records. For existing
+        users, updates their properties. For new users without a password
+        in the import, generates a random password and sets it in AD.
+        Supports -WhatIf and -Confirm via SupportsShouldProcess.
+    .PARAMETER Path
+        Path to the JSON file to import.
+    .PARAMETER ConfigOnly
+        Import only configuration keys, skip users.
+    .PARAMETER UsersOnly
+        Import only users, skip configuration.
+    .EXAMPLE
+        Import-ROConfig -Path '.\robotters-config.json'
+    .EXAMPLE
+        Import-ROConfig -Path '.\config.json' -ConfigOnly
+    .EXAMPLE
+        Import-ROConfig -Path '.\config.json' -UsersOnly -WhatIf
+        Preview user import.
+    .OUTPUTS
+        System.String
+            Confirmation message.
+    .LINK
+        Docs/commands/Import-ROConfig.md
+    #>
     [CmdletBinding(SupportsShouldProcess)]
     param(
         [Parameter(Mandatory)]

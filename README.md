@@ -1,210 +1,137 @@
-# RobOtters - Secret Server Activity Simulator
+# RobOtters
 
-![RobOtter mascot](RobOtter.jpg)
+![RobOtter mascot](assets/RobOtter.jpg)
 
-PowerShell module that simulates realistic Secret Server user activity for lab and demo environments. AD-authenticated users perform randomized actions (0-15 per 30-minute cycle) against an on-prem Delinea Secret Server instance, generating audit trail data that looks like real-world usage*. Add as many or as few simulated accounts as your environment needs.
+PowerShell module that simulates realistic Secret Server user activity for lab and demo environments. AD-authenticated users perform randomized actions against an on-prem Delinea Secret Server instance, generating audit trail data that looks like real-world usage.
 
-
-<sub>\* assuming your users login one at a time every 30 min and take a few random actions that don't relate to each other
-## Prerequisites
-
-- Windows Server 2016+ with PowerShell 5.1+
-- Active Directory domain with user accounts for simulation
-- [PSSQLite](https://github.com/RamblingCookieMonster/PSSQLite) module
-- Delinea Secret Server instance with REST API enabled (`/api/v1/*`)
-- Secrets and folders that the simulated users have access to
-
-## Installation
+## Quickstart
 
 ```powershell
-# Clone the repo
-git clone https://github.com/jagger/SSSimulatedUsers.git C:\projects\TheSimz
+# Import the module (from the repo root)
+Import-Module .\RobOtters.psd1
 
-# Install PSSQLite (if not already installed)
-Install-Module -Name PSSQLite -Scope CurrentUser
-
-# Import the module
-Import-Module C:\projects\TheSimz\RobOtters.psd1
-```
-
-## Initial Setup
-
-```powershell
-# 1. Create the SQLite database and seed default config
+# Create the database
 Initialize-RODatabase
 
-# 2. Point to your Secret Server instance
+# Configure your Secret Server
 Set-ROConfig -Key 'SecretServerUrl' -Value 'https://yourserver/SecretServer'
 Set-ROConfig -Key 'DefaultDomain' -Value 'YOURDOMAIN'
 
-# 3. Verify connectivity
-Test-ROConnection
-```
+# Add a simulated user
+Add-ROUser -Username 'svc.sim01' -Password 'P@ssw0rd!' -Domain 'YOURDOMAIN'
 
-## User Management
+# Test connectivity
+Test-ROConnection -Username 'svc.sim01'
 
-Simulated users are AD accounts whose credentials are stored locally in the SQLite database. Each user gets default action weights on creation.
-
-### Add a user
-
-```powershell
-Add-ROUser -Username 'svc.sim01' -Password 'P@ssw0rd!' -Domain 'LAB'
-```
-
-Optional parameters:
-- `-ActiveHourStart` (default `07:00`) - earliest time the user will be active
-- `-ActiveHourEnd` (default `17:00`) - latest time the user will be active
-
-### List users
-
-```powershell
-Get-ROUser                         # all users
-Get-ROUser -Username 'svc.sim01'   # specific user
-```
-
-### Update a user
-
-```powershell
-Set-ROUser -Username 'svc.sim01' -ActiveHourEnd '19:00'
-Set-ROUser -Username 'svc.sim01' -IsEnabled $false   # disable without deleting
-```
-
-### Remove a user
-
-```powershell
-Remove-ROUser -Username 'svc.sim01'
-```
-
-## Running
-
-### Manual execution
-
-```powershell
-Import-Module C:\projects\TheSimz\RobOtters.psd1
+# Run a cycle
 Start-ROCycle
 ```
 
-Each cycle iterates through all enabled users, checks whether they are within their active hours, selects a random number of actions (0-15), and executes them against Secret Server.
+## Features
 
-### Scheduled task (recommended)
+- **User simulation** with configurable action weights -- [Configuration](Docs/configuration.md)
+- **Automatic password rotation** and auth failure recovery -- [Password Management](Docs/password-management.md)
+- **Export/import** for environment portability -- [Export & Import](Docs/export-import.md)
+- **User access snapshots** -- [Access Snapshots](Docs/access-snapshots.md)
+- **Secret Server reports** from SQL templates -- [Reports](Docs/secret-server-reports.md)
 
-Run `Register-ROTask.ps1` as Administrator to create a Windows Task Scheduler job that fires every 30 minutes:
+## Commands
 
+| Command | Description |
+|---------|-------------|
+| [Initialize-RODatabase](Docs/commands/Initialize-RODatabase.md) | Create or upgrade the SQLite database |
+| [Add-ROUser](Docs/commands/Add-ROUser.md) | Register a simulated AD user |
+| [Remove-ROUser](Docs/commands/Remove-ROUser.md) | Remove a simulated user |
+| [Get-ROUser](Docs/commands/Get-ROUser.md) | List simulated users |
+| [Set-ROUser](Docs/commands/Set-ROUser.md) | Update user properties |
+| [Start-ROCycle](Docs/commands/Start-ROCycle.md) | Run a simulation cycle |
+| [Get-ROActionLog](Docs/commands/Get-ROActionLog.md) | Query the action history |
+| [Get-ROConfig](Docs/commands/Get-ROConfig.md) | Read configuration values |
+| [Set-ROConfig](Docs/commands/Set-ROConfig.md) | Set a configuration value |
+| [Test-ROConnection](Docs/commands/Test-ROConnection.md) | Test Secret Server authentication |
+| [Get-ROAccess](Docs/commands/Get-ROAccess.md) | View user access snapshots |
+| [Export-ROConfig](Docs/commands/Export-ROConfig.md) | Export configuration and users to JSON |
+| [Import-ROConfig](Docs/commands/Import-ROConfig.md) | Import configuration and users from JSON |
+
+## Installation
+
+### Git Clone
 ```powershell
-.\Register-ROTask.ps1
+git clone https://github.com/yourorg/RobOtters.git
+Import-Module .\RobOtters\RobOtters.psd1
 ```
 
-> **Note:** Edit the script first if your module is installed at a path other than `C:\projects\TheSimz`.
+### ZIP Download
+Download from GitHub, extract, and import:
+```powershell
+Import-Module .\RobOtters\RobOtters.psd1
+```
+
+### Module Path
+Copy the module folder to a directory in `$env:PSModulePath`, then:
+```powershell
+Import-Module RobOtters
+```
+
+### Prerequisites
+- Windows Server 2016+ with PowerShell 5.1+
+- Active Directory domain with user accounts for simulation
+- [PSSQLite](https://github.com/RamblingCookieMonster/PSSQLite) module
+- Delinea Secret Server with REST API enabled
+
+See [Getting Started](Docs/getting-started.md) for a full walkthrough.
 
 ## Configuration
 
-All configuration is stored in the `Config` SQLite table. View current values with `Get-ROConfig` and update with `Set-ROConfig`.
+All settings are stored in the Config SQLite table. Key settings:
 
 | Key | Default | Description |
 |-----|---------|-------------|
-| `SecretServerUrl` | `https://yoursecretserver/SecretServer` | Base URL of the Secret Server instance |
-| `DefaultDomain` | `LAB` | AD domain used when authenticating users |
-| `MinActionsPerCycle` | `0` | Minimum actions a user performs per cycle |
-| `MaxActionsPerCycle` | `15` | Maximum actions a user performs per cycle |
-| `LogRetentionDays` | `30` | Days to retain action log entries |
-| `PasswordRotationDays` | `14` | Days between automatic password rotations |
-| `AuthFailureAction` | `AlertOnly` | Auth failure behavior: `AlertOnly` (skip user) or `RotateAndAlert` (rotate password + retry) |
+| SecretServerUrl | (placeholder) | Secret Server base URL |
+| DefaultDomain | LAB | AD domain name |
+| MinActionsPerCycle | 0 | Min actions per user per cycle |
+| MaxActionsPerCycle | 15 | Max actions per user per cycle |
+| PasswordRotationDays | 14 | Days between password rotations |
 
-## Action Weights
+See [Configuration](Docs/configuration.md) for the full list of 9 config keys and action weight customization.
 
-Each user has per-action weights that control how likely each action is to be selected. Higher weight = more frequent. Defaults are seeded from `Data/SeedActionWeights.psd1`:
+## Troubleshooting
 
-| Action | Default Weight |
-|--------|---------------|
-| ViewSecret | 25 |
-| SearchSecrets | 20 |
-| CheckoutPassword | 15 |
-| ListFolderSecrets | 15 |
-| BrowseFolders | 15 |
-| CheckinSecret | 10 |
-| CreateSecret | 5 |
-| EditSecret | 5 |
-| RunReport | 5 |
-| AddFavorite | 5 |
-| ViewSecretPolicy | 5 |
-| ExpireSecret | 3 |
-| ChangePassword | 3 |
-| CreateFolder | 3 |
-| MoveSecret | 3 |
-| TriggerHeartbeat | 3 |
-| ToggleComment | 2 |
-| ToggleCheckout | 2 |
+| Problem | Fix |
+|---------|-----|
+| PSSQLite not found | `Install-Module PSSQLite -Scope CurrentUser` |
+| SecretServerUrl not configured | `Set-ROConfig -Key SecretServerUrl -Value '...'` |
+| Auth failed | `Test-ROConnection -Username X` and check password |
+| 0 actions in scheduled task | Users may be outside active hours; use `-Force` or adjust times |
 
-To customize weights for a specific user, update the `ActionWeight` table directly via SQLite or modify `SeedActionWeights.psd1` before adding users.
-
-## AD Group & Secret Server Reports
-
-For easy monitoring inside Secret Server, put all your simulated accounts into a single AD group and sync it into SS.
-
-### Setup
-
-1. **Create an AD group** (e.g. `SimulatedUsers`) and add every sim account as a member
-2. **Sync the group** into Secret Server via Admin > Active Directory > Synchronize Now
-3. **Create custom reports** in Secret Server (Admin > Reports > New Report) using the SQL files in `Data/Reports/`:
-
-| Report | File | Description |
-|--------|------|-------------|
-| User Activity Summary | `ROUserActivity.sql` | Per-user action counts and last-active timestamps (today, 7d, 30d) |
-| Full Audit Trail | `ROFullAuditTrail.sql` | All secret, folder, and user audit events with SS date picker support |
-
-4. **Update the group name** in each SQL file to match your AD group (default: `SimulatedUsers`)
-
-### Example: creating the report
-
-In Secret Server:
-1. Go to **Admin > Reports > New Report**
-2. Set **Category** to `User`
-3. Paste the contents of `Data/Reports/ROUserActivity.sql`
-4. Name it something like "Simulated User Activity"
-5. Save and run
-
-## Monitoring
-
-### Action log
-
-```powershell
-# Last 20 actions
-Get-ROActionLog -Last 20
-
-# Filter by user
-Get-ROActionLog -Username 'svc.sim01' -Since (Get-Date).AddDays(-1)
-
-# Filter by action type
-Get-ROActionLog -ActionName 'ViewSecret' -Last 50
-```
-
-### Log files
-
-Daily rotating log files are written to the `Logs/` directory. Each entry includes timestamp, component, and message.
+See [Troubleshooting](Docs/troubleshooting.md) for the full guide.
 
 ## Project Structure
 
 ```
-TheSimz/
-├── RobOtters.psd1          # Module manifest
-├── RobOtters.psm1          # Dot-source loader
-├── Register-ROTask.ps1     # Task Scheduler registration script
-├── Data/                   # Schema, seed data, SS reports, SQLite DB (runtime)
-├── Public/                 # Exported cmdlets (13 functions)
-├── Private/
-│   ├── Actions/            # 18 Secret Server action functions
-│   ├── Api/                # REST client + OAuth2 auth
-│   ├── Data/               # SQLite helpers
-│   ├── Engine/             # Cycle orchestration + action selection
-│   └── Logging/            # File + DB logging
-├── Logs/                   # Daily rotating logs (gitignored)
-└── Tests/                  # Pester tests
+RobOtters/
++-- RobOtters.psd1          # Module manifest
++-- RobOtters.psm1          # Dot-source loader
++-- Register-ROTask.ps1     # Task Scheduler registration
++-- assets/                 # Images
++-- Data/                   # Schema, seed data, SS reports
++-- Docs/                   # Guides and command reference
++-- Public/                 # 13 exported commands
++-- Private/
+|   +-- Actions/            # 18 Secret Server action functions
+|   +-- Api/                # REST client + OAuth2
+|   +-- Data/               # SQLite helpers
+|   +-- Engine/             # Cycle orchestration
+|   +-- Logging/            # File + DB logging
++-- Scripts/                # Migration utilities
++-- Logs/                   # Daily rotating logs (gitignored)
++-- Tests/                  # Pester tests
 ```
 
 ## Contributing
 
-Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ## License
 
-This project is licensed under the [MIT License](LICENSE).
+[MIT License](LICENSE)

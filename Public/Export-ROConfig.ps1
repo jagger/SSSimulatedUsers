@@ -1,4 +1,27 @@
 function Export-ROConfig {
+    <#
+    .SYNOPSIS
+        Export configuration and users to a JSON file
+    .DESCRIPTION
+        Exports all Config key-value pairs, user records, and per-user
+        ActionWeights to a JSON file. By default passwords are excluded
+        (null in output). Use -IncludePasswords to decrypt and include
+        passwords in the export. WARNING: exported passwords are in
+        plain text.
+    .PARAMETER Path
+        File path for the JSON export.
+    .PARAMETER IncludePasswords
+        Decrypt and include passwords in the export (security risk).
+    .EXAMPLE
+        Export-ROConfig -Path 'C:\backup\robotters-config.json'
+    .EXAMPLE
+        Export-ROConfig -Path '.\config-with-pw.json' -IncludePasswords
+    .OUTPUTS
+        System.String
+            Confirmation message with export path.
+    .LINK
+        Docs/commands/Export-ROConfig.md
+    #>
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]

@@ -187,10 +187,14 @@ else {
     # Build the command - include encryption key env var if available
     $encKey = $env:RO_ENCRYPT_KEY
     if ($encKey) {
-        $cmdArgs = "-ExecutionPolicy Bypass -NoProfile -Command `"`$env:RO_ENCRYPT_KEY = '$encKey'; Import-Module C:\projects\TheSimz\RobOtters.psd1; Start-ROCycle`""
+        $modulePath = Join-Path $PSScriptRoot '..\RobOtters.psd1'
+        $modulePath = [System.IO.Path]::GetFullPath($modulePath)
+        $cmdArgs = "-ExecutionPolicy Bypass -NoProfile -Command `"`$env:RO_ENCRYPT_KEY = '$encKey'; Import-Module '$modulePath'; Start-ROCycle`""
     }
     else {
-        $cmdArgs = "-ExecutionPolicy Bypass -NoProfile -Command `"Import-Module C:\projects\TheSimz\RobOtters.psd1; Start-ROCycle`""
+        $modulePath = Join-Path $PSScriptRoot '..\RobOtters.psd1'
+        $modulePath = [System.IO.Path]::GetFullPath($modulePath)
+        $cmdArgs = "-ExecutionPolicy Bypass -NoProfile -Command `"Import-Module '$modulePath'; Start-ROCycle`""
     }
 
     $action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument $cmdArgs
@@ -206,7 +210,9 @@ else {
 Write-Host "`n--- Step 6: Verification ---" -ForegroundColor Yellow
 
 try {
-    Import-Module C:\projects\TheSimz\RobOtters.psd1 -Force
+    $verifyModulePath = Join-Path $PSScriptRoot '..\RobOtters.psd1'
+    $verifyModulePath = [System.IO.Path]::GetFullPath($verifyModulePath)
+    Import-Module $verifyModulePath -Force
     Write-Host "  Import-Module RobOtters: OK" -ForegroundColor Green
 }
 catch {

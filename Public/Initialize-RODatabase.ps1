@@ -1,4 +1,25 @@
 function Initialize-RODatabase {
+    <#
+    .SYNOPSIS
+        Create or upgrade the RobOtters SQLite database
+    .DESCRIPTION
+        Creates the SQLite database if it does not exist, applies schema from
+        Data/Schema.sql, runs migrations (adds PasswordLastChanged column,
+        UserAccess table, TemplateCount column), seeds 9 default config values,
+        backfills missing action weights from SeedActionWeights.psd1, and
+        encrypts any plain-text passwords via DPAPI. Idempotent -- safe to run
+        multiple times. Migrates database from old module-local path if found.
+    .EXAMPLE
+        Initialize-RODatabase
+        Create or upgrade the database.
+    .EXAMPLE
+        Import-Module .\RobOtters.psd1; Initialize-RODatabase
+        First-time setup after importing the module.
+    .OUTPUTS
+        System.String - confirmation message with database path
+    .LINK
+        Docs/commands/Initialize-RODatabase.md
+    #>
     [CmdletBinding()]
     param()
 
