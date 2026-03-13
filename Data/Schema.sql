@@ -44,6 +44,7 @@ CREATE TABLE IF NOT EXISTS UserAccess (
     Username      TEXT NOT NULL,
     FolderCount   INTEGER NOT NULL DEFAULT 0,
     SecretCount   INTEGER NOT NULL DEFAULT 0,
+    TemplateCount INTEGER NOT NULL DEFAULT 0,
     TemplateNames TEXT,                                    -- Denormalized comma-separated list for display
     CheckedAt     TEXT NOT NULL DEFAULT (datetime('now')),
     UNIQUE(UserId)                                         -- Enables upsert via ON CONFLICT

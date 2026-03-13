@@ -24,8 +24,8 @@ function Update-SimzUserAccess {
         $secrets = Invoke-SimzApi -Session $session -Endpoint "secrets?take=1"
         $secretCount = if ($secrets.total) { $secrets.total } else { 0 }
 
-        # Get template names visible to this user (capped at 500 templates)
-        $templates = Invoke-SimzApi -Session $session -Endpoint "secret-templates?take=500"
+        # Get template names visible to this user (basic-user-accessible endpoint)
+        $templates = Invoke-SimzApi -Session $session -Endpoint "secret-templates-list?take=500"
         $templateNames = ''
         $templateCount = if ($templates.records) { $templates.records.Count } else { 0 }
         if ($templates.records) {
@@ -35,12 +35,13 @@ function Update-SimzUserAccess {
         # Upsert into UserAccess
         $splat = @{
             Query         = @"
-INSERT INTO UserAccess (UserId, Username, FolderCount, SecretCount, TemplateNames, CheckedAt)
-VALUES (@UserId, @Username, @FolderCount, @SecretCount, @TemplateNames, datetime('now'))
+INSERT INTO UserAccess (UserId, Username, FolderCount, SecretCount, TemplateCount, TemplateNames, CheckedAt)
+VALUES (@UserId, @Username, @FolderCount, @SecretCount, @TemplateCount, @TemplateNames, datetime('now'))
 ON CONFLICT(UserId) DO UPDATE SET
     Username      = @Username,
     FolderCount   = @FolderCount,
     SecretCount   = @SecretCount,
+    TemplateCount = @TemplateCount,
     TemplateNames = @TemplateNames,
     CheckedAt     = datetime('now')
 "@
@@ -49,6 +50,7 @@ ON CONFLICT(UserId) DO UPDATE SET
                 Username      = $User.Username
                 FolderCount   = $folderCount
                 SecretCount   = $secretCount
+                TemplateCount = $templateCount
                 TemplateNames = $templateNames
             }
         }

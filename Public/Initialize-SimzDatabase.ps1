@@ -114,12 +114,20 @@ CREATE TABLE IF NOT EXISTS UserAccess (
     Username      TEXT NOT NULL,
     FolderCount   INTEGER NOT NULL DEFAULT 0,
     SecretCount   INTEGER NOT NULL DEFAULT 0,
+    TemplateCount INTEGER NOT NULL DEFAULT 0,
     TemplateNames TEXT,
     CheckedAt     TEXT NOT NULL DEFAULT (datetime('now')),
     UNIQUE(UserId)
 );
 "@
         Write-SimzLog -Message 'Migrated: created UserAccess table' -Component 'Database'
+    }
+
+    # Migrate: add TemplateCount column to UserAccess if missing
+    $uaCols = Invoke-SimzQuery -Query "PRAGMA table_info(UserAccess)"
+    if ($uaCols -and -not ($uaCols | Where-Object { $_.name -eq 'TemplateCount' })) {
+        Invoke-SimzQuery -Query "ALTER TABLE UserAccess ADD COLUMN TemplateCount INTEGER NOT NULL DEFAULT 0;"
+        Write-SimzLog -Message 'Migrated UserAccess: added TemplateCount column' -Component 'Database'
     }
 
     Write-SimzLog -Message 'Database initialized successfully' -Component 'Database'

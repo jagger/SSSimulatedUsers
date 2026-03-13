@@ -94,6 +94,7 @@ function Get-SimzAccess {
             Username      = $_.Username
             FolderCount   = $_.FolderCount
             SecretCount   = $_.SecretCount
+            TemplateCount = $_.TemplateCount
             TemplateNames = $_.TemplateNames
             CheckedAt     = $_.CheckedAt
         }
