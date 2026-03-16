@@ -9,7 +9,7 @@ Add-ROUser -Username 'svc.sim01' -Password 'P@ssw0rd!' -Domain 'LAB'
 # With custom active hours
 Add-ROUser -Username 'svc.sim02' -Password 'S3cret!' -Domain 'LAB' -ActiveHourStart '09:00' -ActiveHourEnd '21:00'
 ```
-Passwords are encrypted via DPAPI before storage. Default action weights are seeded automatically.
+Passwords are encrypted before storage (DPAPI by default, or AES-256 if `RO_ENCRYPT_KEY` is set). Default action weights are seeded automatically.
 
 ## Listing Users
 ```powershell

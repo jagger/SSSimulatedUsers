@@ -22,7 +22,7 @@ Runs only for the specified user. Does not run password rotation. Still checks a
 ```powershell
 Start-ROCycle -User 'svc.sim01' -Force
 ```
-Overrides active hour restrictions.
+Overrides active hour restrictions for the specified user. The `-Force` switch only applies in single-user mode; full cycles always respect active hours.
 
 ## Preview Mode
 ```powershell

@@ -57,7 +57,7 @@ Start-ROCycle
 
 ### Git Clone
 ```powershell
-git clone https://github.com/yourorg/RobOtters.git
+git clone https://github.com/jagger/SSSimulatedUsers.git RobOtters
 Import-Module .\RobOtters\RobOtters.psd1
 ```
 
@@ -93,7 +93,7 @@ All settings are stored in the Config SQLite table. Key settings:
 | MaxActionsPerCycle | 15 | Max actions per user per cycle |
 | PasswordRotationDays | 14 | Days between password rotations |
 
-See [Configuration](Docs/configuration.md) for the full list of 9 config keys and action weight customization.
+See [Configuration](Docs/configuration.md) for the full list of 9 config keys and 19 action weight customizations.
 
 ## Troubleshooting
 
@@ -118,7 +118,7 @@ RobOtters/
 +-- Docs/                   # Guides and command reference
 +-- Public/                 # 13 exported commands
 +-- Private/
-|   +-- Actions/            # 18 Secret Server action functions
+|   +-- Actions/            # 19 Secret Server action functions
 |   +-- Api/                # REST client + OAuth2
 |   +-- Data/               # SQLite helpers
 |   +-- Engine/             # Cycle orchestration

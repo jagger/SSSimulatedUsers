@@ -12,7 +12,7 @@ function Start-ROCycle {
     .PARAMETER User
         Run cycle for a single user only.
     .PARAMETER Force
-        Override active hour restrictions.
+        Override active hour restrictions (single-user mode only).
     .EXAMPLE
         Start-ROCycle
         Full cycle for all active users.

@@ -22,7 +22,7 @@ filtering. Supports -WhatIf for dry runs.
 | Name | Type | Required | Default | Description |
 |------|------|----------|---------|-------------|
 | User | String | No | -- | Run the cycle for a single user only |
-| Force | Switch | No | -- | Bypass active-hour checks and run for all enabled users |
+| Force | Switch | No | -- | Bypass active-hour checks (single-user mode only) |
 | WhatIf | Switch | No | -- | Show what actions would be taken without executing them |
 
 ## Examples
@@ -33,11 +33,11 @@ Start-ROCycle
 ```
 Processes all active users within their configured active hours.
 
-### Example 2: Force a full cycle outside business hours
+### Example 2: Force a single user outside business hours
 ```powershell
-Start-ROCycle -Force
+Start-ROCycle -User 'svc.sim01' -Force
 ```
-Runs all enabled users regardless of their active-hour settings.
+Runs the specified user regardless of their active-hour settings.
 
 ### Example 3: Run a single user
 ```powershell

@@ -49,6 +49,7 @@ Defaults come from Data/SeedActionWeights.psd1 and are assigned when a user is c
 | CreateFolder | 3 |
 | MoveSecret | 3 |
 | TriggerHeartbeat | 3 |
+| LaunchSecret | 8 |
 | ToggleComment | 2 |
 | ToggleCheckout | 2 |
 

@@ -11,7 +11,7 @@
 
 ### Option 1: Git Clone
 ```powershell
-git clone https://github.com/yourorg/RobOtters.git
+git clone https://github.com/jagger/SSSimulatedUsers.git RobOtters
 ```
 
 ### Option 2: ZIP Download
@@ -41,6 +41,15 @@ Test-ROConnection -Username 'svc.sim01'
 # Run a single cycle
 Start-ROCycle
 ```
+
+## Encryption (Optional)
+By default, passwords are encrypted with DPAPI (tied to the Windows account). For AES-256 encryption (portable across accounts), set the `RO_ENCRYPT_KEY` environment variable:
+```powershell
+$key = [Convert]::ToBase64String((1..32 | ForEach-Object { Get-Random -Minimum 0 -Maximum 256 }))
+[Environment]::SetEnvironmentVariable('RO_ENCRYPT_KEY', $key, 'Machine')
+$env:RO_ENCRYPT_KEY = $key
+```
+See [Password Management](password-management.md) for details.
 
 ## Setting Up the Scheduled Task
 For automated execution every 30 minutes:

@@ -14,6 +14,9 @@
 | "Schema file not found" | Incomplete module copy | Ensure Data/Schema.sql exists alongside the module |
 | Token expired errors | Session timeout during long cycles | Automatic retry handles this; check LogRetentionDays logs |
 | DPAPI decryption fails | Running as different Windows account | Passwords encrypted under one account cannot be decrypted by another; see [Password Management](password-management.md) |
+| "RO_ENCRYPT_KEY is not set" | AES passwords but env var missing | Set `RO_ENCRYPT_KEY` at Machine level and restart PowerShell |
+| All users show empty username/password | Stale module loaded in session | Close PowerShell and reimport in a fresh window |
+| "API_SecretTypeCannotBeCreatedByUser" | User lacks template permissions | Fixed in v0.3.0; CreateSecret now queries available templates dynamically |
 
 ## Diagnostic Steps
 
