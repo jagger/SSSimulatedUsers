@@ -1,6 +1,6 @@
 # User Management
 
-Simulated users are AD accounts whose credentials are stored in the RobOtters SQLite database.
+Simulated users are AD accounts whose credentials are stored in the RobOtters SQLite database. All username lookups are case-insensitive.
 
 ## Adding Users
 ```powershell
@@ -9,7 +9,7 @@ Add-ROUser -Username 'svc.sim01' -Password 'P@ssw0rd!' -Domain 'LAB'
 # With custom active hours
 Add-ROUser -Username 'svc.sim02' -Password 'S3cret!' -Domain 'LAB' -ActiveHourStart '09:00' -ActiveHourEnd '21:00'
 ```
-Passwords are encrypted before storage (DPAPI by default, or AES-256 if `RO_ENCRYPT_KEY` is set). Default action weights are seeded automatically.
+The AD account is validated via `Get-ADUser` before insertion -- the command fails if the account does not exist in Active Directory. Passwords are encrypted before storage (DPAPI by default, or AES-256 if `RO_ENCRYPT_KEY` is set). Default action weights are seeded automatically.
 
 ## Listing Users
 ```powershell

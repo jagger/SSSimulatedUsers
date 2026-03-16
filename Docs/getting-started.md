@@ -6,6 +6,7 @@
 - PSSQLite module (Install-Module PSSQLite -Scope CurrentUser, or manual copy)
 - Delinea Secret Server instance with REST API enabled (/api/v1/*)
 - Secrets and folders that simulated users have access to
+- AD user accounts must exist before adding them to RobOtters
 
 ## Installation
 

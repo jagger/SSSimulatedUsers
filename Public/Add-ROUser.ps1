@@ -3,9 +3,11 @@ function Add-ROUser {
     .SYNOPSIS
         Register a simulated AD user in the RobOtters database
     .DESCRIPTION
-        Adds a new simulated user. The password is encrypted via DPAPI before
-        storage. Action weights are automatically seeded from
-        Data/SeedActionWeights.psd1. Returns the new user object.
+        Adds a new simulated user. Validates the AD account exists via
+        Get-ADUser before insertion. The password is encrypted before storage
+        (DPAPI by default, AES-256 if RO_ENCRYPT_KEY is set). Action weights
+        are automatically seeded from Data/SeedActionWeights.psd1. Username
+        lookups are case-insensitive. Returns the new user object.
     .PARAMETER Username
         AD username for the simulated user.
     .PARAMETER Password

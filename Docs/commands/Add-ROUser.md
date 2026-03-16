@@ -11,9 +11,11 @@ Add-ROUser [-Username] <String> [-Password] <String> [-Domain] <String>
 
 ## Description
 Adds a new simulated Active Directory user to the RobOtters SQLite database. The
-password is encrypted via DPAPI before storage. Action weights are automatically
+AD account is validated via Get-ADUser before insertion -- the command fails if the
+account does not exist in Active Directory. The password is encrypted before storage
+(DPAPI by default, AES-256 if RO_ENCRYPT_KEY is set). Action weights are automatically
 seeded from the SeedActionWeights.psd1 data file so the user is ready to participate
-in simulation cycles immediately.
+in simulation cycles immediately. Username lookups are case-insensitive.
 
 ## Parameters
 
