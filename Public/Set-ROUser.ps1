@@ -60,7 +60,7 @@ function Set-ROUser {
         [switch]$RandomPassword
     )
 
-    $user = Invoke-ROQuery -Query "SELECT * FROM ROUser WHERE Username = @Username" -SqlParameters @{ Username = $Username }
+    $user = Invoke-ROQuery -Query "SELECT * FROM ROUser WHERE Username = @Username COLLATE NOCASE" -SqlParameters @{ Username = $Username }
     if (-not $user) {
         Write-Error "User '$Username' not found."
         return
@@ -110,7 +110,7 @@ function Set-ROUser {
 
     if ($sets.Count -gt 0) {
         $sets += "UpdatedAt = datetime('now')"
-        $query = "UPDATE ROUser SET $($sets -join ', ') WHERE Username = @Username"
+        $query = "UPDATE ROUser SET $($sets -join ', ') WHERE Username = @Username COLLATE NOCASE"
         Invoke-ROQuery -Query $query -SqlParameters $params
         Write-ROLog -Message "Updated user '$Username': $($sets -join ', ')" -Component 'UserMgmt'
     }

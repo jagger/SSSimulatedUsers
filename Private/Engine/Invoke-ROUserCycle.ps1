@@ -38,7 +38,7 @@ function Invoke-ROUserCycle {
 
             if ($rotationCount -gt 0) {
                 # Re-read updated password from SQLite
-                $newPassword = Invoke-ROQuery -Query "SELECT Password FROM ROUser WHERE Username = @Username" `
+                $newPassword = Invoke-ROQuery -Query "SELECT Password FROM ROUser WHERE Username = @Username COLLATE NOCASE" `
                     -SqlParameters @{ Username = $username } -Scalar
                 $newPassword = Unprotect-ROPassword -EncryptedText $newPassword
 

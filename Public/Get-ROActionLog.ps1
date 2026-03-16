@@ -45,7 +45,7 @@ function Get-ROActionLog {
     $params = @{}
 
     if ($Username) {
-        $conditions += "Username = @Username"
+        $conditions += "Username = @Username COLLATE NOCASE"
         $params['Username'] = $Username
     }
     if ($ActionName) {

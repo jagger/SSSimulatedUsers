@@ -41,8 +41,17 @@ function Add-ROUser {
         [string]$ActiveHourEnd = '17:00'
     )
 
+    # Validate user exists in AD
+    try {
+        $adUser = Get-ADUser -Identity $Username -ErrorAction Stop
+    }
+    catch {
+        Write-Error "AD account '$Username' not found. The user must exist in Active Directory before adding to RobOtters."
+        return
+    }
+
     # Check for duplicate
-    $existing = Invoke-ROQuery -Query "SELECT UserId FROM ROUser WHERE Username = @Username" -SqlParameters @{ Username = $Username }
+    $existing = Invoke-ROQuery -Query "SELECT UserId FROM ROUser WHERE Username = @Username COLLATE NOCASE" -SqlParameters @{ Username = $Username }
     if ($existing) {
         Write-Error "User '$Username' already exists."
         return
@@ -64,7 +73,7 @@ VALUES (@Username, @Password, @Domain, @ActiveHourStart, @ActiveHourEnd)
     }
 
     # Get the new UserId
-    $userId = Invoke-ROQuery -Query "SELECT UserId FROM ROUser WHERE Username = @Username" -SqlParameters @{ Username = $Username } -Scalar
+    $userId = Invoke-ROQuery -Query "SELECT UserId FROM ROUser WHERE Username = @Username COLLATE NOCASE" -SqlParameters @{ Username = $Username } -Scalar
 
     # Seed action weights from defaults
     $seedPath = Join-Path $PSScriptRoot '..\Data\SeedActionWeights.psd1'

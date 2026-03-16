@@ -42,7 +42,7 @@ function Get-ROUser {
     )
 
     if ($Username) {
-        $users = Invoke-ROQuery -Query "SELECT * FROM ROUser WHERE Username = @Username" -SqlParameters @{ Username = $Username }
+        $users = Invoke-ROQuery -Query "SELECT * FROM ROUser WHERE Username = @Username COLLATE NOCASE" -SqlParameters @{ Username = $Username }
     }
     elseif ($UserId) {
         $users = Invoke-ROQuery -Query "SELECT * FROM ROUser WHERE UserId = @UserId" -SqlParameters @{ UserId = $UserId }

@@ -50,7 +50,7 @@ function Get-ROAccess {
 
     # Determine which users to work with
     if ($Username) {
-        $users = Invoke-ROQuery -Query "SELECT * FROM ROUser WHERE Username = @Username AND IsEnabled = 1" `
+        $users = Invoke-ROQuery -Query "SELECT * FROM ROUser WHERE Username = @Username COLLATE NOCASE AND IsEnabled = 1" `
             -SqlParameters @{ Username = $Username }
         if (-not $users) {
             Write-Error "User '$Username' not found or not enabled."
@@ -107,7 +107,7 @@ function Get-ROAccess {
 
     # Retrieve and display results (excluding internal AccessId column)
     if ($Username) {
-        $results = Invoke-ROQuery -Query "SELECT * FROM UserAccess WHERE Username = @Username" `
+        $results = Invoke-ROQuery -Query "SELECT * FROM UserAccess WHERE Username = @Username COLLATE NOCASE" `
             -SqlParameters @{ Username = $Username }
     }
     else {

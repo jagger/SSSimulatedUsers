@@ -7,7 +7,7 @@ function Invoke-ROPasswordRotation {
 
     if ($Username) {
         # One-off reset for a specific user
-        $users = Invoke-ROQuery -Query "SELECT UserId, Username, Domain FROM ROUser WHERE Username = @Username" `
+        $users = Invoke-ROQuery -Query "SELECT UserId, Username, Domain FROM ROUser WHERE Username = @Username COLLATE NOCASE" `
             -SqlParameters @{ Username = $Username }
         if (-not $users) {
             Write-Error "User '$Username' not found in ROUser table"
@@ -52,7 +52,7 @@ UPDATE ROUser
 SET Password = @NewPw,
     PasswordLastChanged = datetime('now'),
     UpdatedAt = datetime('now')
-WHERE Username = @Username
+WHERE Username = @Username COLLATE NOCASE
 "@ -SqlParameters @{ NewPw = (Protect-ROPassword -PlainText $newPassword); Username = $user.Username }
 
             Write-ROLog -Message "Password rotated for '$($user.Username)'" -Component 'Engine'

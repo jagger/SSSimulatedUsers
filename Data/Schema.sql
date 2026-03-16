@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS Config (
 
 CREATE TABLE IF NOT EXISTS ROUser (
     UserId          INTEGER PRIMARY KEY AUTOINCREMENT,
-    Username        TEXT NOT NULL UNIQUE,
+    Username        TEXT NOT NULL UNIQUE COLLATE NOCASE,
     Password        TEXT NOT NULL,
     Domain          TEXT NOT NULL,
     ActiveHourStart TEXT NOT NULL DEFAULT '07:00',

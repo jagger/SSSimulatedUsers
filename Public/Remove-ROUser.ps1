@@ -27,7 +27,7 @@ function Remove-ROUser {
         [string]$Username
     )
 
-    $user = Invoke-ROQuery -Query "SELECT UserId FROM ROUser WHERE Username = @Username" -SqlParameters @{ Username = $Username }
+    $user = Invoke-ROQuery -Query "SELECT UserId FROM ROUser WHERE Username = @Username COLLATE NOCASE" -SqlParameters @{ Username = $Username }
     if (-not $user) {
         Write-Error "User '$Username' not found."
         return
