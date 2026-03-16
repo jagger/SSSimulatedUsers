@@ -8,7 +8,9 @@ function Set-ROConfig {
         Valid config keys: SecretServerUrl, DefaultDomain,
         MinActionsPerCycle, MaxActionsPerCycle, LogRetentionDays,
         PasswordRotationDays, AuthFailureAction (AlertOnly or
-        RotateAndAlert), LauncherTemplateId, AccessSnapshotMaxAgeDays.
+        RotateAndAlert), LauncherTemplateId, AccessSnapshotMaxAgeDays,
+        DisabledActions (comma-separated), DisabledCategories
+        (comma-separated: Core, Management, Advanced).
     .PARAMETER Key
         The config key to set.
     .PARAMETER Value
@@ -30,6 +32,7 @@ function Set-ROConfig {
         [string]$Key,
 
         [Parameter(Mandatory)]
+        [AllowEmptyString()]
         [string]$Value
     )
 

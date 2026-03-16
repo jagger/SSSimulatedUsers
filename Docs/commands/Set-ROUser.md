@@ -32,6 +32,10 @@ then updated (DPAPI-encrypted) in the SQLite database. The -Password and
 | IsEnabled | Nullable[Boolean] | No | -- | Enable or disable the user |
 | ActionWeights | Hashtable | No | -- | Updated action weight map |
 | RandomPassword | Switch | No | -- | Generate and set a random password (mutually exclusive with Password) |
+| EnableCategory | String | No | -- | Enable all actions in a category (Core, Management, Advanced) by restoring default weights |
+| DisableCategory | String | No | -- | Disable all actions in a category by setting weights to 0 |
+| EnableAction | String | No | -- | Enable a specific action by restoring its default weight |
+| DisableAction | String | No | -- | Disable a specific action by setting its weight to 0 |
 
 ## Examples
 
@@ -58,6 +62,23 @@ Generates a random password, sets it in AD, and stores the encrypted value in th
 Set-ROUser -Username 'svc-simuser01' -ActionWeights @{ GetSecret = 10; CreateSecret = 5 }
 ```
 Adjusts the probability weights for the user's actions during simulation cycles.
+
+### Example 5: Disable all Management actions for a user
+```powershell
+Set-ROUser -Username 'svc-simuser01' -DisableCategory 'Management'
+```
+Sets all Management action weights to 0.
+
+### Example 6: Re-enable a category
+```powershell
+Set-ROUser -Username 'svc-simuser01' -EnableCategory 'Management'
+```
+Restores default weights for all Management actions.
+
+### Example 7: Disable a single action
+```powershell
+Set-ROUser -Username 'svc-simuser01' -DisableAction 'CreateSecret'
+```
 
 ## Outputs
 

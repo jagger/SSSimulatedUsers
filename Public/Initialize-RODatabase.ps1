@@ -70,6 +70,8 @@ function Initialize-RODatabase {
             AuthFailureAction          = 'AlertOnly'
             LauncherTemplateId         = '6052'
             AccessSnapshotMaxAgeDays   = '7'
+            DisabledActions            = ''
+            DisabledCategories         = ''
         }
 
         foreach ($kv in $defaults.GetEnumerator()) {
@@ -108,6 +110,20 @@ function Initialize-RODatabase {
     if (-not $accessAgeCfg) {
         Invoke-ROQuery -Query "INSERT INTO Config (Key, Value) VALUES ('AccessSnapshotMaxAgeDays', '7')"
         Write-ROLog -Message 'Seeded AccessSnapshotMaxAgeDays config (default: 7)' -Component 'Database'
+    }
+
+    # Ensure DisabledActions config exists (for existing DBs)
+    $disActCfg = Invoke-ROQuery -Query "SELECT Value FROM Config WHERE Key = 'DisabledActions'" -Scalar
+    if ($null -eq $disActCfg) {
+        Invoke-ROQuery -Query "INSERT INTO Config (Key, Value) VALUES ('DisabledActions', '')"
+        Write-ROLog -Message 'Seeded DisabledActions config (default: empty)' -Component 'Database'
+    }
+
+    # Ensure DisabledCategories config exists (for existing DBs)
+    $disCatCfg = Invoke-ROQuery -Query "SELECT Value FROM Config WHERE Key = 'DisabledCategories'" -Scalar
+    if ($null -eq $disCatCfg) {
+        Invoke-ROQuery -Query "INSERT INTO Config (Key, Value) VALUES ('DisabledCategories', '')"
+        Write-ROLog -Message 'Seeded DisabledCategories config (default: empty)' -Component 'Database'
     }
 
     # Migrate: backfill missing action weights for existing users

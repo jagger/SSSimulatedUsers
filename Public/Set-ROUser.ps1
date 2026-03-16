@@ -25,6 +25,14 @@ function Set-ROUser {
         Hashtable of ActionName=Weight pairs to upsert.
     .PARAMETER RandomPassword
         Generate a random password and set it in both AD and SQLite.
+    .PARAMETER EnableCategory
+        Enable all actions in a category (Core, Management, Advanced) by restoring default weights.
+    .PARAMETER DisableCategory
+        Disable all actions in a category by setting their weights to 0.
+    .PARAMETER EnableAction
+        Enable a specific action by restoring its default weight.
+    .PARAMETER DisableAction
+        Disable a specific action by setting its weight to 0.
     .EXAMPLE
         Set-ROUser -Username 'svc.sim01' -ActiveHourEnd '19:00'
     .EXAMPLE
@@ -35,6 +43,15 @@ function Set-ROUser {
     .EXAMPLE
         Set-ROUser -Username 'svc.sim01' -IsEnabled $false
         Disable the user.
+    .EXAMPLE
+        Set-ROUser -Username 'svc.sim01' -DisableCategory 'Management'
+        Disable all Management actions for the user.
+    .EXAMPLE
+        Set-ROUser -Username 'svc.sim01' -EnableCategory 'Management'
+        Restore default weights for all Management actions.
+    .EXAMPLE
+        Set-ROUser -Username 'svc.sim01' -DisableAction 'CreateSecret'
+        Disable a single action for the user.
     .OUTPUTS
         PSCustomObject - the updated user record
     .LINK
@@ -57,7 +74,17 @@ function Set-ROUser {
 
         [hashtable]$ActionWeights,
 
-        [switch]$RandomPassword
+        [switch]$RandomPassword,
+
+        [ValidateSet('Core', 'Management', 'Advanced')]
+        [string]$EnableCategory,
+
+        [ValidateSet('Core', 'Management', 'Advanced')]
+        [string]$DisableCategory,
+
+        [string]$EnableAction,
+
+        [string]$DisableAction
     )
 
     $user = Invoke-ROQuery -Query "SELECT * FROM ROUser WHERE Username = @Username COLLATE NOCASE" -SqlParameters @{ Username = $Username }
@@ -128,6 +155,68 @@ ON CONFLICT(UserId, ActionName) DO UPDATE SET Weight = @Weight
             }
         }
         Write-ROLog -Message "Updated action weights for '$Username'" -Component 'UserMgmt'
+    }
+
+    # Category-level enable/disable
+    if ($EnableCategory -or $DisableCategory) {
+        $registry = Get-ROActionRegistry
+        $seedPath = Join-Path $PSScriptRoot '..\Data\SeedActionWeights.psd1'
+        $seedPath = [System.IO.Path]::GetFullPath($seedPath)
+        $seedWeights = if (Test-Path $seedPath) { Invoke-Expression (Get-Content -Path $seedPath -Raw) } else { @{} }
+
+        $targetCategory = if ($EnableCategory) { $EnableCategory } else { $DisableCategory }
+        $actionsInCategory = $registry.GetEnumerator() | Where-Object { $_.Value.Category -eq $targetCategory }
+
+        foreach ($entry in $actionsInCategory) {
+            $newWeight = if ($EnableCategory) {
+                if ($seedWeights[$entry.Key]) { $seedWeights[$entry.Key] } else { 10 }
+            } else { 0 }
+
+            Invoke-ROQuery -Query @"
+INSERT INTO ActionWeight (UserId, ActionName, Weight) VALUES (@UserId, @ActionName, @Weight)
+ON CONFLICT(UserId, ActionName) DO UPDATE SET Weight = @Weight
+"@ -SqlParameters @{
+                UserId     = $user.UserId
+                ActionName = $entry.Key
+                Weight     = $newWeight
+            }
+        }
+
+        $verb = if ($EnableCategory) { 'Enabled' } else { 'Disabled' }
+        Write-ROLog -Message "$verb category '$targetCategory' for '$Username'" -Component 'UserMgmt'
+    }
+
+    # Granular action enable/disable
+    if ($EnableAction -or $DisableAction) {
+        $targetAction = if ($EnableAction) { $EnableAction } else { $DisableAction }
+        $registry = Get-ROActionRegistry
+
+        if (-not $registry.ContainsKey($targetAction)) {
+            Write-Error "Unknown action '$targetAction'. Valid actions: $($registry.Keys -join ', ')"
+            return
+        }
+
+        $newWeight = 0
+        if ($EnableAction) {
+            $seedPath = Join-Path $PSScriptRoot '..\Data\SeedActionWeights.psd1'
+            $seedPath = [System.IO.Path]::GetFullPath($seedPath)
+            if (Test-Path $seedPath) {
+                $seedWeights = Invoke-Expression (Get-Content -Path $seedPath -Raw)
+                $newWeight = if ($seedWeights[$targetAction]) { $seedWeights[$targetAction] } else { 10 }
+            } else { $newWeight = 10 }
+        }
+
+        Invoke-ROQuery -Query @"
+INSERT INTO ActionWeight (UserId, ActionName, Weight) VALUES (@UserId, @ActionName, @Weight)
+ON CONFLICT(UserId, ActionName) DO UPDATE SET Weight = @Weight
+"@ -SqlParameters @{
+            UserId     = $user.UserId
+            ActionName = $targetAction
+            Weight     = $newWeight
+        }
+
+        $verb = if ($EnableAction) { 'Enabled' } else { 'Disabled' }
+        Write-ROLog -Message "$verb action '$targetAction' for '$Username'" -Component 'UserMgmt'
     }
 
     Get-ROUser -Username $Username

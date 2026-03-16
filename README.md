@@ -93,7 +93,7 @@ All settings are stored in the Config SQLite table. Key settings:
 | MaxActionsPerCycle | 15 | Max actions per user per cycle |
 | PasswordRotationDays | 14 | Days between password rotations |
 
-See [Configuration](Docs/configuration.md) for the full list of 9 config keys and 19 action weight customizations.
+See [Configuration](Docs/configuration.md) for the full list of 11 config keys, action weight customizations, and category controls.
 
 ## Troubleshooting
 
