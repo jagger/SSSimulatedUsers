@@ -6,8 +6,16 @@ function Invoke-ROCreateSecret {
     )
 
     try {
-        # Use Password (2) or Web Password (9) templates
-        $templateId = Get-Random -InputObject @(2, 9)
+        # Query templates the user is actually allowed to create
+        $templates = Invoke-ROApi -Session $Session -Endpoint "secret-templates-list?take=500"
+        if (-not $templates.records -or $templates.records.Count -eq 0) {
+            return [PSCustomObject]@{
+                Action = 'CreateSecret'; TargetType = 'Secret'; TargetId = $null
+                TargetName = $null; Success = $false; ErrorMessage = 'No secret templates available to this user'
+            }
+        }
+        $template = $templates.records | Get-Random
+        $templateId = $template.id
 
         # Get a folder - prefer personal folder for write access
         $folders = Invoke-ROApi -Session $Session -Endpoint "folders?take=50"
@@ -55,7 +63,7 @@ function Invoke-ROCreateSecret {
             Action       = 'CreateSecret'
             TargetType   = 'Secret'
             TargetId     = $result.id
-            TargetName   = "$secretName (template: $($stub.secretTemplateName))"
+            TargetName   = "$secretName (template: $($template.name))"
             Success      = $true
             ErrorMessage = $null
         }

@@ -57,18 +57,18 @@ function Start-ROCycle {
 
     if ($User) {
         # Single-user mode
-        $simUser = Get-ROUser -Username $User -ShowPassword
-        if (-not $simUser) {
+        $roUser = Get-ROUser -Username $User -ShowPassword
+        if (-not $roUser) {
             throw "User '$User' not found"
         }
-        if (-not $simUser.IsEnabled) {
+        if (-not $roUser.IsEnabled) {
             throw "User '$User' is not enabled"
         }
 
         # Check active hours
-        $isActive = Test-ROActiveHours -ActiveHourStart $simUser.ActiveHourStart -ActiveHourEnd $simUser.ActiveHourEnd
+        $isActive = Test-ROActiveHours -ActiveHourStart $roUser.ActiveHourStart -ActiveHourEnd $roUser.ActiveHourEnd
         if (-not $isActive -and -not $Force) {
-            Write-Warning "User '$User' is outside active hours ($($simUser.ActiveHourStart) - $($simUser.ActiveHourEnd)). Use -Force to override."
+            Write-Warning "User '$User' is outside active hours ($($roUser.ActiveHourStart) - $($roUser.ActiveHourEnd)). Use -Force to override."
             return
         }
         if (-not $isActive -and $Force) {
@@ -76,14 +76,14 @@ function Start-ROCycle {
         }
 
         $allUsers = 1
-        $activeUsers = @($simUser)
+        $activeUsers = @($roUser)
 
         if (-not $PSCmdlet.ShouldProcess("user '$User'", 'Run simulation cycle')) {
             return
         }
 
         try {
-            $result = Invoke-ROUserCycle -User $simUser -BaseUrl $baseUrl -MinActions $minActions -MaxActions $maxActions
+            $result = Invoke-ROUserCycle -User $roUser -BaseUrl $baseUrl -MinActions $minActions -MaxActions $maxActions
             $totalActions += $result.Actions
             $totalErrors += $result.Errors
         }
@@ -123,14 +123,14 @@ VALUES (@Start, @End, @Total, 0, 0, 0)
             return
         }
 
-        foreach ($user in $activeUsers) {
+        foreach ($roUser in $activeUsers) {
             try {
-                $result = Invoke-ROUserCycle -User $user -BaseUrl $baseUrl -MinActions $minActions -MaxActions $maxActions
+                $result = Invoke-ROUserCycle -User $roUser -BaseUrl $baseUrl -MinActions $minActions -MaxActions $maxActions
                 $totalActions += $result.Actions
                 $totalErrors += $result.Errors
             }
             catch {
-                Write-ROLog -Message "User cycle failed for '$($user.Username)': $_" -Level ERROR -Component 'Cycle'
+                Write-ROLog -Message "User cycle failed for '$($roUser.Username)': $_" -Level ERROR -Component 'Cycle'
                 $totalErrors++
             }
         }
