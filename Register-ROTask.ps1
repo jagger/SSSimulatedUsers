@@ -102,19 +102,34 @@ if ($EncryptionKey) {
     $rootAcl.SetAccessRuleProtection($true, $true)
     Set-Acl -Path $DataRoot -AclObject $rootAcl
 
+    # Strip create rights from EVERY identity that is not expected to have them,
+    # not just BUILTIN\Users - another group granted write here would reopen the
+    # same race. CREATOR OWNER is left alone: it is inherit-only and applies to
+    # whoever creates a file, which can now only be an allowed identity.
     $rootAcl = Get-Acl $DataRoot
-    $removed = $false
+    $stripped = @()
     foreach ($ace in @($rootAcl.Access)) {
-        if ($ace.IdentityReference.Value -eq $usersAccount -and
-            $ace.AccessControlType -eq 'Allow' -and
-            ($ace.FileSystemRights -band $writeish)) {
+        $identity = $ace.IdentityReference.Value
+        if ($identity -in $allowed -or $identity -eq 'CREATOR OWNER') { continue }
+        if ($ace.AccessControlType -eq 'Allow' -and ($ace.FileSystemRights -band $writeish)) {
             [void]$rootAcl.RemoveAccessRuleSpecific($ace)
-            $removed = $true
+            $stripped += $identity
         }
     }
-    if ($removed) {
+    if ($stripped.Count -gt 0) {
         Set-Acl -Path $DataRoot -AclObject $rootAcl
-        Write-Host "Removed write access for $usersAccount on $DataRoot."
+        Write-Host "Removed create access on $DataRoot for: $(($stripped | Sort-Object -Unique) -join ', ')."
+    }
+
+    # Verify no unexpected identity can still create entries in the data root.
+    $stillWritable = (Get-Acl $DataRoot).Access | Where-Object {
+        $_.AccessControlType -eq 'Allow' -and
+        $_.IdentityReference.Value -notin $allowed -and
+        $_.IdentityReference.Value -ne 'CREATOR OWNER' -and
+        ($_.FileSystemRights -band $writeish)
+    }
+    if ($stillWritable) {
+        throw "Refusing to continue: $DataRoot is still writable by $(($stillWritable.IdentityReference.Value | Sort-Object -Unique) -join ', ')."
     }
 
     # Stage the new key beside the live one. CreateNew fails outright if the path
