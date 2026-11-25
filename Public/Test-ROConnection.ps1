@@ -25,7 +25,7 @@ function Test-ROConnection {
         [string]$Username
     )
 
-    $user = Get-ROUser -Username $Username
+    $user = Get-ROUser -Username $Username -ShowPassword
     if (-not $user) {
         Write-Error "User '$Username' not found in database."
         return

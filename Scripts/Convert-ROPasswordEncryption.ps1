@@ -1,7 +1,7 @@
 <#
 .SYNOPSIS
     One-off migration: relocates database to ProgramData, converts passwords to AES encryption,
-    and updates the RobOtters scheduled task with the RO_ENCRYPT_KEY environment variable.
+    and updates the RobOtters scheduled task action.
 
 .DESCRIPTION
     Performs three migration steps:
@@ -16,16 +16,20 @@
        DPAPI decryption requires running as the same Windows account that originally encrypted.
 
     3. SCHEDULED TASK UPDATE
-       Updates the "RobOtters" scheduled task action to include the RO_ENCRYPT_KEY env var
-       so the task can decrypt passwords at runtime.
+       Rewrites the "RobOtters" scheduled task action. The key is NOT placed in the
+       task arguments; the task resolves it at runtime from the protected key file
+       written by Register-ROTask.ps1 -EncryptionKey (<DataRoot>\encryption.key).
 
     This script is self-contained - it does NOT depend on the RobOtters module being loaded.
     It is idempotent - safe to run multiple times.
 
 .EXAMPLE
     # Generate a key (once) and set it:
-    $key = [Convert]::ToBase64String((1..32 | ForEach-Object { Get-Random -Minimum 0 -Maximum 256 }))
-    [Environment]::SetEnvironmentVariable('RO_ENCRYPT_KEY', $key, 'Machine')
+    # Use a CSPRNG - Get-Random is not suitable for key material.
+    $key = [Convert]::ToBase64String([System.Security.Cryptography.RandomNumberGenerator]::GetBytes(32))
+    # Scope to this process only. Do NOT set it machine-wide: that registry
+    # location is readable by every authenticated user on the server.
+    # Use Register-ROTask.ps1 -EncryptionKey to persist it safely.
     $env:RO_ENCRYPT_KEY = $key
 
     # Then run (as Administrator for scheduled task update):
@@ -55,7 +59,7 @@ $oldDbPath = [System.IO.Path]::GetFullPath($oldDbPath)
 # -- Resolve AES key (inline, no module dependency) ------------------------------
 
 if (-not $env:RO_ENCRYPT_KEY) {
-    throw 'Environment variable RO_ENCRYPT_KEY is not set. Generate one with: [Convert]::ToBase64String((1..32 | ForEach-Object { Get-Random -Minimum 0 -Maximum 256 }))'
+    throw 'Environment variable RO_ENCRYPT_KEY is not set. Generate one with: [Convert]::ToBase64String([System.Security.Cryptography.RandomNumberGenerator]::GetBytes(32))'
 }
 
 [byte[]]$aesKey = [Convert]::FromBase64String($env:RO_ENCRYPT_KEY)
@@ -159,16 +163,15 @@ catch {
     return
 }
 
-$envKey = $env:RO_ENCRYPT_KEY
 $modulePath = Join-Path $PSScriptRoot '..\RobOtters.psd1'
 $modulePath = [System.IO.Path]::GetFullPath($modulePath)
-$newArgs = "-ExecutionPolicy Bypass -NoProfile -Command `"`$env:RO_ENCRYPT_KEY = '$envKey'; Import-Module '$modulePath'; Start-ROCycle`""
+$newArgs = "-ExecutionPolicy Bypass -NoProfile -Command `"Import-Module '$modulePath'; Start-ROCycle`""
 
 $action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument $newArgs
 Set-ScheduledTask -TaskName $taskName -Action $action | Out-Null
 
 Write-Host "  Updated '$taskName' scheduled task action" -ForegroundColor Cyan
-Write-Host "  Command now sets RO_ENCRYPT_KEY before importing the module" -ForegroundColor Cyan
+Write-Host "  Key is not embedded in the task arguments; the task reads the protected key file" -ForegroundColor Cyan
 
 # Verify
 $updated = Get-ScheduledTask -TaskName $taskName | Select-Object -ExpandProperty Actions

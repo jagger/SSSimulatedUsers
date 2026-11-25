@@ -72,6 +72,9 @@ function Initialize-RODatabase {
             AccessSnapshotMaxAgeDays   = '7'
             DisabledActions            = ''
             DisabledCategories         = ''
+            MinActionDelaySec          = '1'
+            MaxActionDelaySec          = '5'
+            ApiTimeoutSeconds          = '60'
         }
 
         foreach ($kv in $defaults.GetEnumerator()) {
@@ -89,6 +92,13 @@ function Initialize-RODatabase {
     if (-not $rotCfg) {
         Invoke-ROQuery -Query "INSERT INTO Config (Key, Value) VALUES ('PasswordRotationDays', '14')"
         Write-ROLog -Message 'Seeded PasswordRotationDays config (default: 14)' -Component 'Database'
+    }
+
+    # Ensure ApiTimeoutSeconds config exists (for existing DBs)
+    $apiTimeoutCfg = Invoke-ROQuery -Query "SELECT Value FROM Config WHERE Key = 'ApiTimeoutSeconds'" -Scalar
+    if (-not $apiTimeoutCfg) {
+        Invoke-ROQuery -Query "INSERT INTO Config (Key, Value) VALUES ('ApiTimeoutSeconds', '60')"
+        Write-ROLog -Message 'Seeded ApiTimeoutSeconds config (default: 60)' -Component 'Database'
     }
 
     # Ensure AuthFailureAction config exists (for existing DBs)
@@ -124,6 +134,20 @@ function Initialize-RODatabase {
     if ($null -eq $disCatCfg) {
         Invoke-ROQuery -Query "INSERT INTO Config (Key, Value) VALUES ('DisabledCategories', '')"
         Write-ROLog -Message 'Seeded DisabledCategories config (default: empty)' -Component 'Database'
+    }
+
+    # Ensure MinActionDelaySec config exists (for existing DBs)
+    $minDelayCfg = Invoke-ROQuery -Query "SELECT Value FROM Config WHERE Key = 'MinActionDelaySec'" -Scalar
+    if ($null -eq $minDelayCfg) {
+        Invoke-ROQuery -Query "INSERT INTO Config (Key, Value) VALUES ('MinActionDelaySec', '1')"
+        Write-ROLog -Message 'Seeded MinActionDelaySec config (default: 1)' -Component 'Database'
+    }
+
+    # Ensure MaxActionDelaySec config exists (for existing DBs)
+    $maxDelayCfg = Invoke-ROQuery -Query "SELECT Value FROM Config WHERE Key = 'MaxActionDelaySec'" -Scalar
+    if ($null -eq $maxDelayCfg) {
+        Invoke-ROQuery -Query "INSERT INTO Config (Key, Value) VALUES ('MaxActionDelaySec', '5')"
+        Write-ROLog -Message 'Seeded MaxActionDelaySec config (default: 5)' -Component 'Database'
     }
 
     # Migrate: backfill missing action weights for existing users

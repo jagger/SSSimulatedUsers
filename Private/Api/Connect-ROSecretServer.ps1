@@ -23,10 +23,20 @@ function Connect-ROSecretServer {
         domain     = $Domain
     }
 
+    $timeoutSec = Get-ROApiTimeout
+
     Write-ROLog -Message "Authenticating '$Username' against $BaseUrl" -Level DEBUG -Component 'API'
 
     try {
-        $response = Invoke-RestMethod -Uri $tokenUrl -Method POST -Body $body -ContentType 'application/x-www-form-urlencoded' -ErrorAction Stop
+        $tokenSplat = @{
+            Uri         = $tokenUrl
+            Method      = 'POST'
+            Body        = $body
+            ContentType = 'application/x-www-form-urlencoded'
+            TimeoutSec  = $timeoutSec
+            ErrorAction = 'Stop'
+        }
+        $response = Invoke-RestMethod @tokenSplat
 
         $session = [PSCustomObject]@{
             Token    = $response.access_token
@@ -38,9 +48,13 @@ function Connect-ROSecretServer {
 
         # Cache Secret Server user ID for checkin filtering
         try {
-            $me = Invoke-RestMethod -Uri "$BaseUrl/api/v1/users/current" `
-                -Headers @{ Authorization = "Bearer $($response.access_token)" } `
-                -ContentType 'application/json'
+            $meSplat = @{
+                Uri         = "$BaseUrl/api/v1/users/current"
+                Headers     = @{ Authorization = "Bearer $($response.access_token)" }
+                ContentType = 'application/json'
+                TimeoutSec  = $timeoutSec
+            }
+            $me = Invoke-RestMethod @meSplat
             $session.SSUserId = $me.id
         }
         catch {

@@ -146,11 +146,15 @@ else {
 $oldKey = [Environment]::GetEnvironmentVariable('SIMZ_ENCRYPT_KEY', 'Machine')
 $newKey = [Environment]::GetEnvironmentVariable('RO_ENCRYPT_KEY', 'Machine')
 if ($oldKey -and -not $newKey) {
-    [Environment]::SetEnvironmentVariable('RO_ENCRYPT_KEY', $oldKey, 'Machine')
-    [Environment]::SetEnvironmentVariable('SIMZ_ENCRYPT_KEY', $null, 'Machine')
+    # Do NOT re-home the key into another machine-level variable: that registry
+    # location is readable by every authenticated user on the server. Carry it in
+    # this process only and tell the operator to persist it to the protected
+    # key file via Register-ROTask.ps1 -EncryptionKey.
     $env:RO_ENCRYPT_KEY = $oldKey
+    [Environment]::SetEnvironmentVariable('SIMZ_ENCRYPT_KEY', $null, 'Machine')
     $env:SIMZ_ENCRYPT_KEY = $null
-    Write-Host "  SIMZ_ENCRYPT_KEY -> RO_ENCRYPT_KEY" -ForegroundColor Green
+    Write-Host "  SIMZ_ENCRYPT_KEY -> RO_ENCRYPT_KEY (current process only)" -ForegroundColor Green
+    Write-Warning '  The encryption key is no longer stored machine-wide. Persist it with: Register-ROTask.ps1 -EncryptionKey (ConvertTo-SecureString $env:RO_ENCRYPT_KEY -AsPlainText -Force)'
 }
 elseif ($newKey) {
     Write-Host "  RO_ENCRYPT_KEY already set - skipping" -ForegroundColor DarkGray
@@ -184,18 +188,10 @@ else {
         Write-Host "  Old task '$oldTaskName' not found - creating new task" -ForegroundColor DarkGray
     }
 
-    # Build the command - include encryption key env var if available
-    $encKey = $env:RO_ENCRYPT_KEY
-    if ($encKey) {
-        $modulePath = Join-Path $PSScriptRoot '..\RobOtters.psd1'
-        $modulePath = [System.IO.Path]::GetFullPath($modulePath)
-        $cmdArgs = "-ExecutionPolicy Bypass -NoProfile -Command `"`$env:RO_ENCRYPT_KEY = '$encKey'; Import-Module '$modulePath'; Start-ROCycle`""
-    }
-    else {
-        $modulePath = Join-Path $PSScriptRoot '..\RobOtters.psd1'
-        $modulePath = [System.IO.Path]::GetFullPath($modulePath)
-        $cmdArgs = "-ExecutionPolicy Bypass -NoProfile -Command `"Import-Module '$modulePath'; Start-ROCycle`""
-    }
+    # Build the command - relies on machine-level RO_ENCRYPT_KEY env var
+    $modulePath = Join-Path $PSScriptRoot '..\RobOtters.psd1'
+    $modulePath = [System.IO.Path]::GetFullPath($modulePath)
+    $cmdArgs = "-ExecutionPolicy Bypass -NoProfile -Command `"Import-Module '$modulePath'; Start-ROCycle`""
 
     $action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument $cmdArgs
     $trigger = New-ScheduledTaskTrigger -Once -At (Get-Date).Date -RepetitionInterval (New-TimeSpan -Minutes 30) -RepetitionDuration (New-TimeSpan -Days 9999)

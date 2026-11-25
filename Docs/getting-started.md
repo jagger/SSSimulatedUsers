@@ -43,17 +43,24 @@ Test-ROConnection -Username 'svc.sim01'
 Start-ROCycle
 ```
 
-## Encryption (Optional)
-By default, passwords are encrypted with DPAPI (tied to the Windows account). For AES-256 encryption (portable across accounts), set the `RO_ENCRYPT_KEY` environment variable:
+## Encryption (Optional but Recommended)
+By default, passwords are encrypted with DPAPI (tied to the Windows account). For AES-256 encryption (portable across accounts), generate a key and hand it to `Register-ROTask.ps1`, which stores it in a protected key file:
 ```powershell
-$key = [Convert]::ToBase64String((1..32 | ForEach-Object { Get-Random -Minimum 0 -Maximum 256 }))
-[Environment]::SetEnvironmentVariable('RO_ENCRYPT_KEY', $key, 'Machine')
+# Cryptographically secure - do not use Get-Random for key material
+$key = [Convert]::ToBase64String([System.Security.Cryptography.RandomNumberGenerator]::GetBytes(32))
+
+# Writes <DataRoot>\encryption.key, DPAPI-protected and ACL'd to
+# SYSTEM, Administrators and the service account.
+.\Register-ROTask.ps1 -EncryptionKey (ConvertTo-SecureString $key -AsPlainText -Force) `
+                      -ServiceAccountPassword (Read-Host 'Service account password' -AsSecureString)
+
+# Current session only, for interactive use:
 $env:RO_ENCRYPT_KEY = $key
 ```
-See [Password Management](password-management.md) for details.
+The scheduled task reads the key file at runtime. **Do not** embed the key in task arguments, and **do not** store it in a machine-level environment variable - that registry location is readable by every authenticated user on the server. See [Password Management](password-management.md) for details.
 
 ## Setting Up the Scheduled Task
-For automated execution every 30 minutes:
+Pass the key via `-EncryptionKey` (if using AES encryption) when running:
 ```powershell
 .\Register-ROTask.ps1
 ```

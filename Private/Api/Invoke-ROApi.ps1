@@ -17,10 +17,17 @@ function Invoke-ROApi {
         [switch]$Paginate
     )
 
+    # Check token expiry before making the call
+    if ($Session.Expiry -and (Get-Date).AddSeconds(60) -ge $Session.Expiry) {
+        throw "Session token expired for '$($Session.Username)'. Re-authentication required."
+    }
+
     $url = "$($Session.BaseUrl)/api/v1/$($Endpoint.TrimStart('/'))"
     $headers = @{
         Authorization = "Bearer $($Session.Token)"
     }
+
+    $timeoutSec = Get-ROApiTimeout
 
     $attempt = 0
     while ($true) {
@@ -31,6 +38,7 @@ function Invoke-ROApi {
                 Method      = $Method
                 Headers     = $headers
                 ContentType = 'application/json'
+                TimeoutSec  = $timeoutSec
                 ErrorAction = 'Stop'
             }
 
@@ -77,6 +85,21 @@ function Invoke-ROApi {
                 Write-ROLog -Message "API $Method $Endpoint returned $statusCode, retrying in ${waitSec}s (attempt $attempt/$MaxRetries)" -Level WARN -Component 'API'
                 Start-Sleep -Seconds $waitSec
                 continue
+            }
+
+            # Try to read response body for better error messages
+            $responseBody = $null
+            if ($_.Exception.Response) {
+                try {
+                    $stream = $_.Exception.Response.GetResponseStream()
+                    $reader = New-Object System.IO.StreamReader($stream)
+                    $responseBody = $reader.ReadToEnd()
+                    $reader.Close()
+                }
+                catch {}
+            }
+            if ($responseBody) {
+                Write-ROLog -Message "API $Method $Endpoint response body: $responseBody" -Level DEBUG -Component 'API'
             }
 
             Write-ROLog -Message "API $Method $Endpoint failed: $_" -Level ERROR -Component 'API'
