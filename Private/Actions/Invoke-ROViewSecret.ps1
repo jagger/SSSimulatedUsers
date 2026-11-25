@@ -15,14 +15,33 @@ function Invoke-ROViewSecret {
             }
         }
 
-        $secret = $response.records | Get-Random
-        $detail = Invoke-ROApi -Session $Session -Endpoint "secrets/$($secret.id)"
+        # Try up to 3 random secrets in case some require checkout/comment to view
+        $candidates = $response.records | Get-Random -Count ([Math]::Min(3, $response.records.Count))
+        foreach ($secret in $candidates) {
+            try {
+                $detail = Invoke-ROApi -Session $Session -Endpoint "secrets/$($secret.id)"
 
+                return [PSCustomObject]@{
+                    Action       = 'ViewSecret'
+                    TargetType   = 'Secret'
+                    TargetId     = $detail.id
+                    TargetName   = $detail.name
+                    Success      = $true
+                    ErrorMessage = $null
+                }
+            }
+            catch {
+                Write-ROLog -Message "ViewSecret: cannot access secret $($secret.id), trying next: $_" -Level WARN -Component 'Actions'
+                continue
+            }
+        }
+
+        # All candidates inaccessible - the search itself generated audit activity
         [PSCustomObject]@{
             Action       = 'ViewSecret'
             TargetType   = 'Secret'
-            TargetId     = $detail.id
-            TargetName   = $detail.name
+            TargetId     = $null
+            TargetName   = 'All candidates inaccessible (checkout/comment required)'
             Success      = $true
             ErrorMessage = $null
         }

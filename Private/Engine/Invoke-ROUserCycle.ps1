@@ -112,8 +112,12 @@ function Invoke-ROUserCycle {
             $results.Errors++
         }
 
-        # Random delay between actions (1-5 seconds) to simulate human pace
-        $delay = Get-Random -Minimum 1 -Maximum 6
+        # Configurable delay between actions to simulate human pace
+        $minDelay = Get-ROConfig -Key 'MinActionDelaySec'
+        $maxDelay = Get-ROConfig -Key 'MaxActionDelaySec'
+        if (-not $minDelay) { $minDelay = 1 }
+        if (-not $maxDelay) { $maxDelay = 5 }
+        $delay = Get-Random -Minimum ([int]$minDelay) -Maximum ([int]$maxDelay + 1)
         Start-Sleep -Seconds $delay
     }
 

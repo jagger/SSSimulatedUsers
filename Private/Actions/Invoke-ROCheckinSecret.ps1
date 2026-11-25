@@ -27,16 +27,22 @@ function Invoke-ROCheckinSecret {
         # Filter to only secrets actually checked out by the current user
         $myCheckouts = @()
         foreach ($rec in $response.records) {
-            $detail = Invoke-ROApi -Session $Session -Endpoint "secrets/$($rec.id)"
-            if ($detail.checkedOut -and $detail.checkOutUserId -eq $Session.SSUserId) {
-                $myCheckouts += $rec
+            try {
+                $detail = Invoke-ROApi -Session $Session -Endpoint "secrets/$($rec.id)"
+                if ($detail.checkedOut -and $detail.checkOutUserId -eq $Session.SSUserId) {
+                    $myCheckouts += $rec
+                }
+            }
+            catch {
+                Write-ROLog -Message "CheckinSecret: cannot inspect secret $($rec.id), skipping: $_" -Level WARN -Component 'Actions'
+                continue
             }
         }
 
         if ($myCheckouts.Count -eq 0) {
             return [PSCustomObject]@{
                 Action = 'CheckinSecret'; TargetType = 'Secret'; TargetId = $null
-                TargetName = 'No secrets checked out by current user'; Success = $true; ErrorMessage = $null
+                TargetName = 'No accessible secrets checked out by current user'; Success = $true; ErrorMessage = $null
             }
         }
 

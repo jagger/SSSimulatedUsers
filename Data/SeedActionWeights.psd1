@@ -17,5 +17,12 @@
     ToggleCheckout    = 2
     ExpireSecret      = 3
     ChangePassword    = 3
-    LaunchSecret      = 8
+    LaunchSecret           = 8
+    ViewSecretAudit        = 10
+    RemoveFavorite         = 3
+    ViewRecentActivity     = 12
+    RenameFolder           = 3
+    ListExpiredSecrets     = 5
+    ViewSecretDependencies = 4
+    GeneratePassword       = 5
 }

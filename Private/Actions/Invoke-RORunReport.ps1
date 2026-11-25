@@ -11,7 +11,7 @@ function Invoke-RORunReport {
         if (-not $reports.records -or $reports.records.Count -eq 0) {
             return [PSCustomObject]@{
                 Action = 'RunReport'; TargetType = 'Report'; TargetId = $null
-                TargetName = $null; Success = $false; ErrorMessage = 'No reports available'
+                TargetName = 'No reports available (searched)'; Success = $true; ErrorMessage = $null
             }
         }
 
@@ -19,7 +19,20 @@ function Invoke-RORunReport {
 
         # Execute the report
         $body = @{ id = $report.id }
-        $result = Invoke-ROApi -Session $Session -Endpoint "reports/execute" -Method POST -Body $body
+        try {
+            $result = Invoke-ROApi -Session $Session -Endpoint "reports/execute" -Method POST -Body $body
+        }
+        catch {
+            Write-ROLog -Message "RunReport: execution of '$($report.name)' failed (permission or parameter issue): $_" -Level WARN -Component 'Actions'
+            return [PSCustomObject]@{
+                Action       = 'RunReport'
+                TargetType   = 'Report'
+                TargetId     = $report.id
+                TargetName   = "$($report.name) (execution denied)"
+                Success      = $true
+                ErrorMessage = $null
+            }
+        }
 
         [PSCustomObject]@{
             Action       = 'RunReport'

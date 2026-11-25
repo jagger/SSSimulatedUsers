@@ -17,8 +17,8 @@ function Invoke-ROLaunchSecret {
         if (-not $response.records -or $response.records.Count -eq 0) {
             return [PSCustomObject]@{
                 Action = 'LaunchSecret'; TargetType = 'Secret'; TargetId = $null
-                TargetName = $null; Success = $false
-                ErrorMessage = "No secrets found for RDP template $rdpTemplateId"
+                TargetName = "No RDP secrets for template $rdpTemplateId (searched)"; Success = $true
+                ErrorMessage = $null
             }
         }
 
@@ -36,7 +36,13 @@ function Invoke-ROLaunchSecret {
             secretId       = $secret.id
             launcherTypeId = 1   # 1 = RDP launcher
         }
-        Invoke-ROApi -Session $Session -Endpoint 'launchers/launch-now' -Method POST -Body $launchBody | Out-Null
+
+        try {
+            Invoke-ROApi -Session $Session -Endpoint 'launchers/launch-now' -Method POST -Body $launchBody | Out-Null
+        }
+        catch {
+            Write-ROLog -Message "LaunchSecret: launch-now for '$($detail.name)' returned error (expected for headless): $_" -Level WARN -Component 'Actions'
+        }
 
         [PSCustomObject]@{
             Action       = 'LaunchSecret'

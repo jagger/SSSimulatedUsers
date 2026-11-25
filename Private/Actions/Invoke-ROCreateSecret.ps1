@@ -14,8 +14,6 @@ function Invoke-ROCreateSecret {
                 TargetName = $null; Success = $false; ErrorMessage = 'No secret templates available to this user'
             }
         }
-        $template = $templates.records | Get-Random
-        $templateId = $template.id
 
         # Get a folder - prefer personal folder for write access
         $folders = Invoke-ROApi -Session $Session -Endpoint "folders?take=50"
@@ -34,36 +32,66 @@ function Invoke-ROCreateSecret {
             }
         }
 
-        # Get a secret stub from the API and set siteId (stub defaults to -1 which is rejected)
-        $stub = Invoke-ROApi -Session $Session -Endpoint "secrets/stub?secretTemplateId=$templateId&folderId=$folderId"
-        $stub.siteId = 1
+        # Try up to 2 templates in case the first one has validation issues
+        $templateCandidates = $templates.records | Get-Random -Count ([Math]::Min(2, $templates.records.Count))
+        foreach ($template in $templateCandidates) {
+            $templateId = $template.id
 
-        # Generate a secret name
-        $prefixes = @('svc', 'admin', 'app', 'db', 'web', 'api', 'backup', 'monitor')
-        $suffixes = @('prod', 'dev', 'test', 'staging', 'lab', 'dr')
-        $secretName = "sim-$(Get-Random -InputObject $prefixes)-$(Get-Random -InputObject $suffixes)-$(Get-Random -Minimum 1000 -Maximum 9999)"
-        $stub.name = $secretName
+            try {
+                # Get a secret stub from the API and set siteId (stub defaults to -1 which is rejected)
+                $stub = Invoke-ROApi -Session $Session -Endpoint "secrets/stub?secretTemplateId=$templateId&folderId=$folderId"
+                $stub.siteId = 1
 
-        # Fill in the stub fields
-        foreach ($item in $stub.items) {
-            $item.itemValue = switch ($item.slug) {
-                'resource'  { "server$(Get-Random -Minimum 1 -Maximum 50).lab.local" }
-                'url'       { "https://app$(Get-Random -Minimum 1 -Maximum 50).lab.local" }
-                'username'  { "simuser_$(Get-Random -Minimum 100 -Maximum 999)" }
-                'password'  { "P@ss$(Get-Random -Minimum 10000 -Maximum 99999)!" }
-                'notes'     { "Created by RobOtters simulator at $(Get-Date -Format 'yyyy-MM-dd HH:mm')" }
-                default     { "simvalue_$(Get-Random -Minimum 100 -Maximum 999)" }
+                # Generate a secret name
+                $prefixes = @('svc', 'admin', 'app', 'db', 'web', 'api', 'backup', 'monitor')
+                $suffixes = @('prod', 'dev', 'test', 'staging', 'lab', 'dr')
+                $secretName = "sim-$(Get-Random -InputObject $prefixes)-$(Get-Random -InputObject $suffixes)-$(Get-Random -Minimum 1000 -Maximum 9999)"
+                $stub.name = $secretName
+
+                # Fill in stub fields - only set fields that exist in the stub
+                foreach ($item in $stub.items) {
+                    if ($null -eq $item.slug) { continue }
+                    $item.itemValue = switch ($item.slug) {
+                        'resource'  { "server$(Get-Random -Minimum 1 -Maximum 50).lab.local" }
+                        'url'       { "https://app$(Get-Random -Minimum 1 -Maximum 50).lab.local" }
+                        'username'  { "simuser_$(Get-Random -Minimum 100 -Maximum 999)" }
+                        'password'  { "P@ss$(Get-Random -Minimum 10000 -Maximum 99999)!" }
+                        'notes'     { "Created by RobOtters simulator at $(Get-Date -Format 'yyyy-MM-dd HH:mm')" }
+                        default     {
+                            if ($item.isRequired) {
+                                "simvalue_$(Get-Random -Minimum 100 -Maximum 999)"
+                            }
+                            else {
+                                $item.itemValue
+                            }
+                        }
+                    }
+                }
+
+                # Create the secret
+                $result = Invoke-ROApi -Session $Session -Endpoint 'secrets' -Method POST -Body $stub
+
+                return [PSCustomObject]@{
+                    Action       = 'CreateSecret'
+                    TargetType   = 'Secret'
+                    TargetId     = $result.id
+                    TargetName   = "$secretName (template: $($template.name))"
+                    Success      = $true
+                    ErrorMessage = $null
+                }
+            }
+            catch {
+                Write-ROLog -Message "CreateSecret: template '$($template.name)' failed, trying next: $_" -Level WARN -Component 'Actions'
+                continue
             }
         }
 
-        # Create the secret
-        $result = Invoke-ROApi -Session $Session -Endpoint 'secrets' -Method POST -Body $stub
-
+        # All template attempts failed
         [PSCustomObject]@{
             Action       = 'CreateSecret'
             TargetType   = 'Secret'
-            TargetId     = $result.id
-            TargetName   = "$secretName (template: $($template.name))"
+            TargetId     = $null
+            TargetName   = 'All template attempts failed'
             Success      = $true
             ErrorMessage = $null
         }

@@ -21,6 +21,13 @@ function Get-ROActionRegistry {
         ToggleCheckout    = @{ Function = 'Invoke-ROToggleCheckout';    Category = 'Management' }
         ExpireSecret      = @{ Function = 'Invoke-ROExpireSecret';      Category = 'Management' }
         ChangePassword    = @{ Function = 'Invoke-ROChangePassword';    Category = 'Advanced' }
-        LaunchSecret      = @{ Function = 'Invoke-ROLaunchSecret';     Category = 'Advanced' }
+        LaunchSecret           = @{ Function = 'Invoke-ROLaunchSecret';           Category = 'Advanced' }
+        ViewSecretAudit        = @{ Function = 'Invoke-ROViewSecretAudit';        Category = 'Core' }
+        RemoveFavorite         = @{ Function = 'Invoke-RORemoveFavorite';         Category = 'Core' }
+        ViewRecentActivity     = @{ Function = 'Invoke-ROViewRecentActivity';     Category = 'Core' }
+        RenameFolder           = @{ Function = 'Invoke-RORenameFolder';           Category = 'Management' }
+        ListExpiredSecrets     = @{ Function = 'Invoke-ROListExpiredSecrets';     Category = 'Advanced' }
+        ViewSecretDependencies = @{ Function = 'Invoke-ROViewSecretDependencies'; Category = 'Advanced' }
+        GeneratePassword       = @{ Function = 'Invoke-ROGeneratePassword';       Category = 'Advanced' }
     }
 }

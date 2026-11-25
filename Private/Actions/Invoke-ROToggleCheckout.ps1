@@ -14,38 +14,55 @@ function Invoke-ROToggleCheckout {
             }
         }
 
-        $secret = $response.records | Get-Random
-        $detail = Invoke-ROApi -Session $Session -Endpoint "secrets/$($secret.id)"
+        # Try up to 3 candidates
+        $candidates = $response.records | Get-Random -Count ([Math]::Min(3, $response.records.Count))
+        foreach ($secret in $candidates) {
+            try {
+                $detail = Invoke-ROApi -Session $Session -Endpoint "secrets/$($secret.id)"
 
-        # Toggle checkOutEnabled - don't disable if the secret is currently checked out
-        $newState = -not $detail.checkOutEnabled
-        if (-not $newState -and $detail.checkedOut) {
-            return [PSCustomObject]@{
-                Action = 'ToggleCheckout'; TargetType = 'Secret'; TargetId = $secret.id
-                TargetName = "$($secret.name) (skipped, currently checked out)"; Success = $true; ErrorMessage = $null
+                # Toggle checkOutEnabled - don't disable if the secret is currently checked out
+                $newState = -not $detail.checkOutEnabled
+                if (-not $newState -and $detail.checkedOut) {
+                    Write-ROLog -Message "ToggleCheckout: secret '$($secret.name)' is checked out, skipping" -Level WARN -Component 'Actions'
+                    continue
+                }
+                $detail.checkOutEnabled = $newState
+
+                if ($newState) {
+                    # Set a reasonable checkout interval when enabling
+                    $intervals = @(15, 30, 60, 120)
+                    $detail.checkOutIntervalMinutes = Get-Random -InputObject $intervals
+                    $detail.checkOutChangePasswordEnabled = $false
+                }
+                else {
+                    $detail.checkOutIntervalMinutes = -1
+                }
+
+                Invoke-ROApi -Session $Session -Endpoint "secrets/$($secret.id)" -Method PUT -Body $detail | Out-Null
+
+                $label = if ($newState) { "enabled ($($detail.checkOutIntervalMinutes)min)" } else { 'disabled' }
+
+                return [PSCustomObject]@{
+                    Action       = 'ToggleCheckout'
+                    TargetType   = 'Secret'
+                    TargetId     = $secret.id
+                    TargetName   = "$($secret.name) (checkout $label)"
+                    Success      = $true
+                    ErrorMessage = $null
+                }
+            }
+            catch {
+                Write-ROLog -Message "ToggleCheckout: cannot update secret $($secret.id), trying next: $_" -Level WARN -Component 'Actions'
+                continue
             }
         }
-        $detail.checkOutEnabled = $newState
 
-        if ($newState) {
-            # Set a reasonable checkout interval when enabling
-            $intervals = @(15, 30, 60, 120)
-            $detail.checkOutIntervalMinutes = Get-Random -InputObject $intervals
-            $detail.checkOutChangePasswordEnabled = $false
-        }
-        else {
-            $detail.checkOutIntervalMinutes = -1
-        }
-
-        Invoke-ROApi -Session $Session -Endpoint "secrets/$($secret.id)" -Method PUT -Body $detail | Out-Null
-
-        $label = if ($newState) { "enabled ($($detail.checkOutIntervalMinutes)min)" } else { 'disabled' }
-
+        # All candidates failed
         [PSCustomObject]@{
             Action       = 'ToggleCheckout'
             TargetType   = 'Secret'
-            TargetId     = $secret.id
-            TargetName   = "$($secret.name) (checkout $label)"
+            TargetId     = $null
+            TargetName   = 'All candidates inaccessible or checked out'
             Success      = $true
             ErrorMessage = $null
         }

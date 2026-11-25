@@ -19,10 +19,16 @@ function Invoke-ROChangePassword {
         $target = $null
 
         foreach ($s in $candidates) {
-            $detail = Invoke-ROApi -Session $Session -Endpoint "secrets/$($s.id)"
-            if ($detail.autoChangeEnabled) {
-                $target = $s
-                break
+            try {
+                $detail = Invoke-ROApi -Session $Session -Endpoint "secrets/$($s.id)"
+                if ($detail.autoChangeEnabled) {
+                    $target = $s
+                    break
+                }
+            }
+            catch {
+                Write-ROLog -Message "ChangePassword: cannot inspect secret $($s.id), skipping: $_" -Level WARN -Component 'Actions'
+                continue
             }
         }
 

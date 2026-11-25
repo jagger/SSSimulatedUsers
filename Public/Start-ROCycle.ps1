@@ -39,6 +39,18 @@ function Start-ROCycle {
         [switch]$Force
     )
 
+    # Acquire cycle lock to prevent overlapping runs
+    $lockPath = $null
+    try {
+        $lockPath = New-ROCycleLock
+    }
+    catch {
+        Write-Error "Cannot start cycle: $_"
+        return
+    }
+
+    try {
+
     $cycleStart = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
     Write-ROLog -Message "=== Cycle starting at $cycleStart ===" -Component 'Cycle'
 
@@ -160,5 +172,18 @@ VALUES (@Start, @End, @Total, @Active, @Actions, @Errors)
         ActiveUsers  = $activeUsers.Count
         TotalActions = $totalActions
         Errors       = $totalErrors
+    }
+
+    # Clean up old log files (non-fatal)
+    try {
+        Invoke-ROLogCleanup
+    }
+    catch {
+        Write-ROLog -Message "Log cleanup failed (non-fatal): $_" -Level WARN -Component 'Cycle'
+    }
+
+    } # end try
+    finally {
+        Remove-ROCycleLock
     }
 }
