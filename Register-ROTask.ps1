@@ -90,17 +90,45 @@ if ($EncryptionKey) {
     # inside it; read access is left alone so operators can still read logs.
     $usersAccount = (New-Object System.Security.Principal.SecurityIdentifier('S-1-5-32-545')).Translate(
         [System.Security.Principal.NTAccount]).Value
-    # Test only the bits that actually permit creating entries in the directory.
-    # Do NOT include Modify or FullControl here: those masks contain the read
-    # bits too, so ReadAndExecute would match and we would silently strip read
-    # access as well. CreateFiles/CreateDirectories are already set in Write,
-    # Modify and FullControl, so matching on them alone catches every case.
-    $writeish = [System.Security.AccessControl.FileSystemRights]::CreateFiles `
-        -bor [System.Security.AccessControl.FileSystemRights]::CreateDirectories
+    # Rights that let an identity put something in this directory, remove what is
+    # already there, or hand itself more access. ChangePermissions and
+    # TakeOwnership matter as much as CreateFiles: either one lets the holder
+    # grant itself the rest, so checking only for create rights would miss the
+    # shortest path in.
+    #
+    # Do NOT add Modify or FullControl here. Those masks contain the read bits,
+    # so ReadAndExecute would match and we would silently strip read access while
+    # reporting that only write had been removed. Every one of them already
+    # includes CreateFiles, so the narrower bits still catch them.
+    $R = [System.Security.AccessControl.FileSystemRights]
+    $writeish = $R::CreateFiles `
+        -bor $R::CreateDirectories `
+        -bor $R::Delete `
+        -bor $R::DeleteSubdirectoriesAndFiles `
+        -bor $R::ChangePermissions `
+        -bor $R::TakeOwnership
 
+    # A junction or symlink here would send every write below to somewhere we
+    # have not vetted, so refuse before touching anything.
+    $rootItem = Get-Item -LiteralPath $DataRoot -Force
+    if ($rootItem.Attributes -band [System.IO.FileAttributes]::ReparsePoint) {
+        throw "Refusing to continue: $DataRoot is a reparse point (junction or symlink)."
+    }
+    if (-not $rootItem.PSIsContainer) {
+        throw "Refusing to continue: $DataRoot is not a directory."
+    }
+
+    # Ownership outranks the DACL - an owner can always rewrite permissions, so
+    # taking ownership first is what makes the rest of this hardening stick.
     $rootAcl = Get-Acl $DataRoot
+    $rootAcl.SetOwner((New-Object System.Security.Principal.NTAccount('BUILTIN', 'Administrators')))
     $rootAcl.SetAccessRuleProtection($true, $true)
     Set-Acl -Path $DataRoot -AclObject $rootAcl
+
+    $ownerNow = (Get-Acl $DataRoot).Owner
+    if ($ownerNow -notin $allowed) {
+        throw "Refusing to continue: $DataRoot is owned by $ownerNow, which can rewrite its permissions at will."
+    }
 
     # Strip create rights from EVERY identity that is not expected to have them,
     # not just BUILTIN\Users - another group granted write here would reopen the
@@ -110,7 +138,13 @@ if ($EncryptionKey) {
     $stripped = @()
     foreach ($ace in @($rootAcl.Access)) {
         $identity = $ace.IdentityReference.Value
-        if ($identity -in $allowed -or $identity -eq 'CREATOR OWNER') { continue }
+        if ($identity -in $allowed) { continue }
+        # CREATOR OWNER is harmless only while it is inherit-only: it then applies
+        # to whoever creates a file, and only allowed identities can do that now.
+        # A non-inherit-only CREATOR OWNER ACE applies to the current owner
+        # directly and has to be treated like any other.
+        if ($identity -eq 'CREATOR OWNER' -and
+            ($ace.PropagationFlags -band [System.Security.AccessControl.PropagationFlags]::InheritOnly)) { continue }
         if ($ace.AccessControlType -eq 'Allow' -and ($ace.FileSystemRights -band $writeish)) {
             [void]$rootAcl.RemoveAccessRuleSpecific($ace)
             $stripped += $identity
@@ -125,7 +159,8 @@ if ($EncryptionKey) {
     $stillWritable = (Get-Acl $DataRoot).Access | Where-Object {
         $_.AccessControlType -eq 'Allow' -and
         $_.IdentityReference.Value -notin $allowed -and
-        $_.IdentityReference.Value -ne 'CREATOR OWNER' -and
+        -not ($_.IdentityReference.Value -eq 'CREATOR OWNER' -and
+              ($_.PropagationFlags -band [System.Security.AccessControl.PropagationFlags]::InheritOnly)) -and
         ($_.FileSystemRights -band $writeish)
     }
     if ($stillWritable) {
