@@ -82,12 +82,12 @@ if ($EncryptionKey) {
         throw "EncryptionKey must decode to exactly 32 bytes (AES-256). Got $($keyBytes.Length)."
     }
 
-    # DPAPI LocalMachine: the ciphertext is useless if copied off this server.
-    # The ACL below is what actually restricts who can read it.
-    $plainBytes = [System.Text.Encoding]::UTF8.GetBytes($plainKey)
-    $protected  = [System.Security.Cryptography.ProtectedData]::Protect(
-        $plainBytes, $null, [System.Security.Cryptography.DataProtectionScope]::LocalMachine)
-    [System.IO.File]::WriteAllText($keyFile, [Convert]::ToBase64String($protected))
+    # Order matters. The data root grants BUILTIN\Users read access, so a key
+    # file created there inherits it. Create the file EMPTY, lock the ACL down,
+    # and only then write the key bytes - otherwise there is a window in which
+    # any authenticated user can read the protected blob.
+    if (Test-Path $keyFile) { Remove-Item $keyFile -Force }
+    New-Item -Path $keyFile -ItemType File -Force | Out-Null
 
     # Break inheritance and grant only SYSTEM, Administrators and the service account.
     $acl = Get-Acl $keyFile
@@ -98,6 +98,27 @@ if ($EncryptionKey) {
             $identity, 'FullControl', 'None', 'None', 'Allow')))
     }
     Set-Acl -Path $keyFile -AclObject $acl
+
+    # Confirm the lockdown took effect before writing any key material.
+    $unexpected = (Get-Acl $keyFile).Access | Where-Object {
+        $_.IdentityReference -notin @('NT AUTHORITY\SYSTEM', 'BUILTIN\Administrators', $ServiceAccount)
+    }
+    if ($unexpected) {
+        throw "Refusing to write the key: unexpected ACEs remain on $keyFile ($($unexpected.IdentityReference -join ', '))."
+    }
+
+    # DPAPI LocalMachine, so the ciphertext is useless if copied off this server.
+    # LocalMachine (not CurrentUser) is required because this script runs as an
+    # administrator while the key is read back by the service account. That means
+    # any process able to READ the file can also decrypt it, so the ACL above is
+    # the real control. Optional entropy is deliberately omitted: it would have to
+    # live in this script, which is in source control, so it would add no real
+    # protection while implying more than it delivers.
+    $plainBytes = [System.Text.Encoding]::UTF8.GetBytes($plainKey)
+    $protected  = [System.Security.Cryptography.ProtectedData]::Protect(
+        $plainBytes, $null, [System.Security.Cryptography.DataProtectionScope]::LocalMachine)
+    [System.IO.File]::WriteAllText($keyFile, [Convert]::ToBase64String($protected))
+    [Array]::Clear($plainBytes, 0, $plainBytes.Length)
 
     Write-Host "Stored RO_ENCRYPT_KEY DPAPI-protected at $keyFile (readable only by SYSTEM, Administrators and $ServiceAccount)."
     [Array]::Clear($plainBytes, 0, $plainBytes.Length)
