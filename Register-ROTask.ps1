@@ -119,15 +119,25 @@ if ($EncryptionKey) {
     }
 
     # Ownership outranks the DACL - an owner can always rewrite permissions, so
-    # taking ownership first is what makes the rest of this hardening stick.
+    # this has to be checked BEFORE we change it. Checking only afterwards would
+    # be tautological: we would be asserting the value we had just assigned, and
+    # the one thing worth knowing - that something untrusted owned the directory
+    # we are about to put a key in - would be lost.
+    $ownerBefore = (Get-Acl $DataRoot).Owner
+    $acceptableOwners = @($allowed) + @([System.Security.Principal.WindowsIdentity]::GetCurrent().Name)
+    if ($ownerBefore -notin $acceptableOwners) {
+        throw "Refusing to continue: $DataRoot is owned by $ownerBefore. An unexpected owner can rewrite the directory's permissions at will, so inspect how it came to own this path before re-running."
+    }
+
     $rootAcl = Get-Acl $DataRoot
     $rootAcl.SetOwner((New-Object System.Security.Principal.NTAccount('BUILTIN', 'Administrators')))
     $rootAcl.SetAccessRuleProtection($true, $true)
     Set-Acl -Path $DataRoot -AclObject $rootAcl
 
+    # Second check, now genuinely about whether the write took effect.
     $ownerNow = (Get-Acl $DataRoot).Owner
     if ($ownerNow -notin $allowed) {
-        throw "Refusing to continue: $DataRoot is owned by $ownerNow, which can rewrite its permissions at will."
+        throw "Refusing to continue: ownership of $DataRoot did not change as expected (still $ownerNow)."
     }
 
     # Strip create rights from EVERY identity that is not expected to have them,
@@ -165,6 +175,16 @@ if ($EncryptionKey) {
     }
     if ($stillWritable) {
         throw "Refusing to continue: $DataRoot is still writable by $(($stillWritable.IdentityReference.Value | Sort-Object -Unique) -join ', ')."
+    }
+
+    # Re-read the attributes now the lockdown is done. Get-Acl and Set-Acl work by
+    # path, so in principle the directory could have been swapped for a junction
+    # between the earlier check and here. Closing that window properly would mean
+    # holding a single directory handle across every operation, which needs
+    # P/Invoke; this at least refuses to put a key anywhere the swap succeeded.
+    $rootItem = Get-Item -LiteralPath $DataRoot -Force
+    if (($rootItem.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -or -not $rootItem.PSIsContainer) {
+        throw "Refusing to continue: $DataRoot changed into a reparse point or a file while it was being secured."
     }
 
     # Stage the new key beside the live one. CreateNew fails outright if the path
