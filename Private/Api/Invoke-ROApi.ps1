@@ -99,19 +99,15 @@ function Invoke-ROApi {
                 catch {}
             }
             if ($responseBody) {
-                # Error bodies can echo secret field values. Write-ROLog persists
-                # DEBUG lines to the log file, and those files are readable by
-                # BUILTIN\Users, so redact known-sensitive keys and cap the length
-                # before anything reaches disk.
-                $safeBody = $responseBody
-                foreach ($sensitive in @('password', 'token', 'access_token', 'refresh_token', 'itemValue', 'value', 'privateKey')) {
-                    $pattern  = '(?i)("' + $sensitive + '"\s*:\s*)"(?:[^"\\]|\\.)*"'
-                    $safeBody = [regex]::Replace($safeBody, $pattern, '$1"[redacted]"')
+                # Never log the raw body: it can echo secret field values, and
+                # Write-ROLog persists DEBUG lines to a file readable by
+                # BUILTIN\Users. Get-ROSafeLogBody parses the JSON, redacts by
+                # key name regardless of value type, and suppresses anything it
+                # cannot parse.
+                $safeBody = Get-ROSafeLogBody -Body $responseBody
+                if ($safeBody) {
+                    Write-ROLog -Message "API $Method $Endpoint response body: $safeBody" -Level DEBUG -Component 'API'
                 }
-                if ($safeBody.Length -gt 512) {
-                    $safeBody = $safeBody.Substring(0, 512) + '...[truncated]'
-                }
-                Write-ROLog -Message "API $Method $Endpoint response body: $safeBody" -Level DEBUG -Component 'API'
             }
 
             Write-ROLog -Message "API $Method $Endpoint failed: $_" -Level ERROR -Component 'API'

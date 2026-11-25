@@ -82,29 +82,69 @@ if ($EncryptionKey) {
         throw "EncryptionKey must decode to exactly 32 bytes (AES-256). Got $($keyBytes.Length)."
     }
 
-    # Order matters. The data root grants BUILTIN\Users read access, so a key
-    # file created there inherits it. Create the file EMPTY, lock the ACL down,
-    # and only then write the key bytes - otherwise there is a window in which
-    # any authenticated user can read the protected blob.
-    if (Test-Path $keyFile) { Remove-Item $keyFile -Force }
-    New-Item -Path $keyFile -ItemType File -Force | Out-Null
+    $allowed = @('NT AUTHORITY\SYSTEM', 'BUILTIN\Administrators', $ServiceAccount)
 
-    # Break inheritance and grant only SYSTEM, Administrators and the service account.
-    $acl = Get-Acl $keyFile
+    # Ordinary users must not be able to create files in the data root, or they
+    # can pre-create (or symlink) the key file and win a race against this
+    # script. Strip write access from BUILTIN\Users before touching anything
+    # inside it; read access is left alone so operators can still read logs.
+    $usersAccount = (New-Object System.Security.Principal.SecurityIdentifier('S-1-5-32-545')).Translate(
+        [System.Security.Principal.NTAccount]).Value
+    # Test only the bits that actually permit creating entries in the directory.
+    # Do NOT include Modify or FullControl here: those masks contain the read
+    # bits too, so ReadAndExecute would match and we would silently strip read
+    # access as well. CreateFiles/CreateDirectories are already set in Write,
+    # Modify and FullControl, so matching on them alone catches every case.
+    $writeish = [System.Security.AccessControl.FileSystemRights]::CreateFiles `
+        -bor [System.Security.AccessControl.FileSystemRights]::CreateDirectories
+
+    $rootAcl = Get-Acl $DataRoot
+    $rootAcl.SetAccessRuleProtection($true, $true)
+    Set-Acl -Path $DataRoot -AclObject $rootAcl
+
+    $rootAcl = Get-Acl $DataRoot
+    $removed = $false
+    foreach ($ace in @($rootAcl.Access)) {
+        if ($ace.IdentityReference.Value -eq $usersAccount -and
+            $ace.AccessControlType -eq 'Allow' -and
+            ($ace.FileSystemRights -band $writeish)) {
+            [void]$rootAcl.RemoveAccessRuleSpecific($ace)
+            $removed = $true
+        }
+    }
+    if ($removed) {
+        Set-Acl -Path $DataRoot -AclObject $rootAcl
+        Write-Host "Removed write access for $usersAccount on $DataRoot."
+    }
+
+    # Stage the new key beside the live one. CreateNew fails outright if the path
+    # already exists, so a pre-created file or link cannot be handed to us.
+    $stagedKey = "$keyFile.new"
+    if (Test-Path $stagedKey) { Remove-Item $stagedKey -Force }
+    $stream = [System.IO.File]::Open(
+        $stagedKey,
+        [System.IO.FileMode]::CreateNew,
+        [System.IO.FileAccess]::Write,
+        [System.IO.FileShare]::None)
+    $stream.Close()
+
+    # Take ownership and lock the ACL down while the file is still empty.
+    $acl = Get-Acl $stagedKey
+    $acl.SetOwner((New-Object System.Security.Principal.NTAccount('BUILTIN', 'Administrators')))
     $acl.SetAccessRuleProtection($true, $false)
     foreach ($existing in @($acl.Access)) { [void]$acl.RemoveAccessRule($existing) }
-    foreach ($identity in @('NT AUTHORITY\SYSTEM', 'BUILTIN\Administrators', $ServiceAccount)) {
+    foreach ($identity in $allowed) {
         $acl.AddAccessRule((New-Object System.Security.AccessControl.FileSystemAccessRule(
             $identity, 'FullControl', 'None', 'None', 'Allow')))
     }
-    Set-Acl -Path $keyFile -AclObject $acl
+    Set-Acl -Path $stagedKey -AclObject $acl
 
-    # Confirm the lockdown took effect before writing any key material.
-    $unexpected = (Get-Acl $keyFile).Access | Where-Object {
-        $_.IdentityReference -notin @('NT AUTHORITY\SYSTEM', 'BUILTIN\Administrators', $ServiceAccount)
-    }
-    if ($unexpected) {
-        throw "Refusing to write the key: unexpected ACEs remain on $keyFile ($($unexpected.IdentityReference -join ', '))."
+    # Verify the lockdown actually took effect BEFORE any key material is written.
+    $verify = Get-Acl $stagedKey
+    $unexpected = $verify.Access | Where-Object { $_.IdentityReference.Value -notin $allowed }
+    if ($unexpected -or -not $verify.AreAccessRulesProtected) {
+        Remove-Item $stagedKey -Force -ErrorAction SilentlyContinue
+        throw "Refusing to write the key: $stagedKey did not lock down as expected ($($unexpected.IdentityReference -join ', '))."
     }
 
     # DPAPI LocalMachine, so the ciphertext is useless if copied off this server.
@@ -117,8 +157,30 @@ if ($EncryptionKey) {
     $plainBytes = [System.Text.Encoding]::UTF8.GetBytes($plainKey)
     $protected  = [System.Security.Cryptography.ProtectedData]::Protect(
         $plainBytes, $null, [System.Security.Cryptography.DataProtectionScope]::LocalMachine)
-    [System.IO.File]::WriteAllText($keyFile, [Convert]::ToBase64String($protected))
+    [System.IO.File]::WriteAllText($stagedKey, [Convert]::ToBase64String($protected))
     [Array]::Clear($plainBytes, 0, $plainBytes.Length)
+
+    # Prove the staged file decrypts back to the same key before it replaces a
+    # working one. Losing this key makes every stored password unrecoverable, so
+    # the live file is never deleted on the strength of an unverified write.
+    $roundTrip = [System.Text.Encoding]::UTF8.GetString(
+        [System.Security.Cryptography.ProtectedData]::Unprotect(
+            [Convert]::FromBase64String([System.IO.File]::ReadAllText($stagedKey)),
+            $null,
+            [System.Security.Cryptography.DataProtectionScope]::LocalMachine))
+    if ($roundTrip -ne $plainKey) {
+        Remove-Item $stagedKey -Force -ErrorAction SilentlyContinue
+        throw 'Refusing to install the key: the staged file did not decrypt back to the supplied key.'
+    }
+
+    # Keep the previous key until the new one is in place, then drop it.
+    $backupKey = "$keyFile.bak"
+    if (Test-Path $keyFile) {
+        if (Test-Path $backupKey) { Remove-Item $backupKey -Force }
+        Move-Item -Path $keyFile -Destination $backupKey -Force
+    }
+    Move-Item -Path $stagedKey -Destination $keyFile -Force
+    if (Test-Path $backupKey) { Remove-Item $backupKey -Force }
 
     Write-Host "Stored RO_ENCRYPT_KEY DPAPI-protected at $keyFile (readable only by SYSTEM, Administrators and $ServiceAccount)."
     [Array]::Clear($plainBytes, 0, $plainBytes.Length)
